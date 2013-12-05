@@ -12,6 +12,7 @@
     <sprite>sprites\spr_ghost_eyes</sprite>
     <sprite>sprites\spr_ghost_pupils</sprite>
     <sprite>sprites\spr_pellet</sprite>
+    <sprite>sprites\spr_power_pellet</sprite>
     <sprite>sprites\spr_outer_wall</sprite>
     <sprite>sprites\spr_outer_corner</sprite>
     <sprite>sprites\spr_outer_bit</sprite>
