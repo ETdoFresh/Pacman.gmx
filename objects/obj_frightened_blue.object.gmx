@@ -25,33 +25,10 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Call Inherited Event
+            <string>/// Call Inherited Event, Set Body Color, Set Initial Object
 event_inherited();
+body_color = make_color_rgb(60, 87, 167);
 </string>
-          </argument>
-        </arguments>
-      </action>
-      <action>
-        <libid>1</libid>
-        <id>611</id>
-        <kind>6</kind>
-        <userelative>-1</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>body_color</string>
-          </argument>
-          <argument>
-            <kind>0</kind>
-            <string>make_color_rgb(60, 87, 167)</string>
           </argument>
         </arguments>
       </action>
@@ -73,29 +50,12 @@ event_inherited();
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Draw Body
+            <string>/// Draw Body and Eyes
+
+// Body
 draw_sprite_ext(spr_ghost_body, -1, x, y, image_xscale, image_yscale, image_angle, body_color, 1);
-</string>
-          </argument>
-        </arguments>
-      </action>
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Draw Eyes
+
+/// Eyes
 var eye_color = make_color_rgb(255, 207, 50);
 draw_sprite_ext(spr_ghost_eyes, 5, x, y, image_xscale, image_yscale, image_angle, eye_color, 1);
 </string>
