@@ -26,10 +26,198 @@
           <argument>
             <kind>1</kind>
             <string>/// Call Inherited Event, Set Body Color, Set Initial Object
+RIGHT = 0;
+UP = 1;
+LEFT = 2;
+DOWN = 3;
+
 event_inherited();
 body_color = c_red;
 initial_object = obj_blinky;
+current_direction = LEFT;
 </string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Create Targets
+my_target = instance_create(x - 32, y, obj_target);
+end_target = instance_create(x, y, obj_target);
+
+with (my_target)
+    image_blend = c_white;
+
+with (end_target)
+    image_blend = other.body_color;
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Set Targets
+
+if (point_distance(x, y, my_target.x, my_target.y) &lt; move_speed)
+{
+    var new_direction;
+    var distance = 10000;
+    
+    if (place_free_direction(self, LEFT) &amp;&amp; current_direction != RIGHT)
+    {
+        if (point_distance(x - 32, y, end_target.x, end_target.y) &lt; distance)
+        {
+            new_direction = LEFT;
+            distance = point_distance(x - 32, y, end_target.x, end_target.y);
+        }
+    }
+    if (place_free_direction(self, UP) &amp;&amp; current_direction != DOWN)
+    {
+        if (point_distance(x, y - 32, end_target.x, end_target.y) &lt; distance)
+        {
+            new_direction = UP;
+            distance = point_distance(x, y - 32, end_target.x, end_target.y);
+        }
+    }
+    if (place_free_direction(self, RIGHT) &amp;&amp; current_direction != LEFT)
+    {
+        if (point_distance(x + 32, y, end_target.x, end_target.y) &lt; distance)
+        {
+            new_direction = RIGHT;
+            distance = point_distance(x + 32, y, end_target.x, end_target.y);
+        }
+    }
+    if (place_free_direction(self, DOWN) &amp;&amp; current_direction != UP)
+    {
+        if (point_distance(x, y + 32, end_target.x, end_target.y) &lt; distance)
+        {
+            new_direction = DOWN;
+            distance = point_distance(x, y + 32, end_target.x, end_target.y);
+        }
+    }
+    
+    //current_direction = new_direction
+}
+
+if (!place_free(x - 32, y))
+    current_direction = RIGHT;
+if (!place_free(x + 32, y))    
+    current_direction = LEFT;
+
+my_target.x = x;
+my_target.y = y;
+if (current_direction == RIGHT) my_target.x += 32;
+else if (current_direction == UP) my_target.y -= 32;
+else if (current_direction == LEFT) my_target.x -= 32;
+else if (current_direction == DOWN) my_target.y += 32;
+
+with (my_target)
+    move_snap(32, 32);
+
+move_towards_point(my_target.x, my_target.y, move_speed);
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="8" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>604</id>
+        <kind>0</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>0</useapplyto>
+        <exetype>1</exetype>
+        <functionname>action_inherited</functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>613</id>
+        <kind>0</kind>
+        <userelative>-1</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>1</exetype>
+        <functionname>action_draw_variable</functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>-1</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>0</kind>
+            <string>place_free(x-32, y)</string>
+          </argument>
+          <argument>
+            <kind>0</kind>
+            <string>0</string>
+          </argument>
+          <argument>
+            <kind>0</kind>
+            <string>-30</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>613</id>
+        <kind>0</kind>
+        <userelative>-1</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>1</exetype>
+        <functionname>action_draw_variable</functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>-1</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>0</kind>
+            <string>current_direction</string>
+          </argument>
+          <argument>
+            <kind>0</kind>
+            <string>0</string>
+          </argument>
+          <argument>
+            <kind>0</kind>
+            <string>-40</string>
           </argument>
         </arguments>
       </action>

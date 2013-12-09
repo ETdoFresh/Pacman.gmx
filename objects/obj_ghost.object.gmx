@@ -33,6 +33,8 @@ image_speed = seconds_per_step / seconds_per_frame;
 
 // Default Body Color
 body_color = c_white;
+
+move_speed = 3;
 </string>
           </argument>
         </arguments>

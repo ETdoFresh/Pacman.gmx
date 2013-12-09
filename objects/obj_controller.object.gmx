@@ -80,6 +80,13 @@ if (instance_exists(obj_pacman))
     if (obj_pacman.x &lt; 16) obj_pacman.x = 16 + 28 * 32;
     else if (obj_pacman.x &gt; 16 + 28 * 32) obj_pacman.x = 16;
 }
+
+for (var i = 0; i &lt; instance_number(obj_ghost); i ++)
+{
+    var ghost = instance_find(obj_ghost, i);
+    if (ghost.x &lt; 16) ghost.x = 16 + 28 * 32;
+    else if (ghost.x &gt; 16 + 28 * 32) ghost.x = 16;
+}
 </string>
           </argument>
         </arguments>

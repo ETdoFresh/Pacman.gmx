@@ -21,6 +21,9 @@
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
+  <scripts name="scripts">
+    <script>scripts\place_free_direction.gml</script>
+  </scripts>
   <objects name="objects">
     <objects name="Ghosts">
       <object>objects\obj_ghost</object>
@@ -44,10 +47,12 @@
       <object>objects\obj_inner_wall</object>
       <object>objects\obj_inner_corner</object>
     </objects>
+    <objects name="Movement">
+      <object>objects\obj_target</object>
+    </objects>
     <object>objects\obj_pacman</object>
     <object>objects\obj_pacman_die</object>
     <object>objects\obj_controller</object>
-    <object>objects\obj_target</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_game</room>
