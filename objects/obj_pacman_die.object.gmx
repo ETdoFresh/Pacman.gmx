@@ -60,8 +60,7 @@ y = ystart;
 
 instance_change(obj_pacman, true);
 
-with(obj_ghost)
-    visible = true;
+instance_activate_object(obj_ghost);
 </string>
           </argument>
         </arguments>

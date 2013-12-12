@@ -49,6 +49,7 @@ turn_speed = 10; // degrees per step
 
 // Create target to follow
 my_target = instance_create(x, y, obj_target);
+my_target.image_blend = c_yellow;
 </string>
           </argument>
         </arguments>
@@ -470,11 +471,9 @@ target_image_angle = 180;
             <string>/// Hide and reset ghosts, lose a life, Pacman die
 
 with (obj_ghost)
-{
-    x = xstart;
-    y = ystart;
-    visible = false;
-}
+    event_perform(ev_other, ev_user0);
+
+instance_deactivate_object(obj_ghost);
 
 lives--;
 

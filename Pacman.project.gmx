@@ -21,9 +21,6 @@
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
-  <scripts name="scripts">
-    <script>scripts\place_free_direction.gml</script>
-  </scripts>
   <objects name="objects">
     <objects name="Ghosts">
       <object>objects\obj_ghost</object>
