@@ -27,12 +27,6 @@
             <kind>1</kind>
             <string>/// Setup Direction, Image, Movement, Target
 
-// Direction Enumeration
-RIGHT = 0;
-UP = 1;
-LEFT = 2;
-DOWN = 3;
-
 // Image Setup
 image_speed = 1;
 image_blend = c_yellow;

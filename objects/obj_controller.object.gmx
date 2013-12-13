@@ -28,6 +28,8 @@
             <string>/// Set time and flash variables
 fright_seconds = 6;
 fright_flash = 5;
+
+alarm[1] = 60;
 </string>
           </argument>
         </arguments>
@@ -48,8 +50,12 @@ fright_flash = 5;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Set Home Leave Timer
-alarm[1] = 30;
+            <string>/// Set Main Character Variables
+pacman = instance_find(obj_pacman, 0);
+blinky = instance_find(obj_blinky, 0);
+pinky = instance_find(obj_pinky, 0);
+inky = instance_find(obj_inky, 0);
+clyde = instance_find(obj_clyde, 0);
 </string>
           </argument>
         </arguments>
@@ -74,31 +80,24 @@ alarm[1] = 30;
             <kind>1</kind>
             <string>/// Ghost Leaves Home
 
-var ghost_to_let_out = obj_pinky;
-if (instance_number(obj_ghost_home) == 2)
-    ghost_to_let_out = obj_inky;
-if (instance_number(obj_ghost_home) == 1)
-    ghost_to_let_out = obj_clyde;
-var let_ghost_out = false;
+alarm[1] = 60;
 
-for (var i = 0; i &lt; instance_number(obj_ghost_home); i++)
+var ghosts;
+ghosts[0] = pinky;
+ghosts[1] = inky;
+ghosts[2] = clyde;
+
+for (var i = 0; i &lt; array_length_1d(ghosts); i++)
 {
-    with (instance_find(obj_ghost_home, i))
+    with (ghosts[i])
     {
-        if (initial_object == ghost_to_let_out)
+        if (object_index == obj_ghost_home)
         {
             instance_change(obj_leaving_home, true);
-            let_ghost_out = true;
+            exit;
         }
     }
 }
-
-
-if (!let_ghost_out &amp;&amp; instance_number(obj_ghost_home) &gt; 0)
-    with(obj_ghost_home)
-        instance_change(obj_leaving_home, true);
-
-alarm[1] = 60;
 </string>
           </argument>
         </arguments>
@@ -115,14 +114,15 @@ alarm[1] = 60;
         <exetype>2</exetype>
         <functionname></functionname>
         <codestring></codestring>
-        <whoName>obj_ghost</whoName>
+        <whoName>self</whoName>
         <relative>0</relative>
         <isnot>0</isnot>
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Change Frightened Back to Original
-instance_change(initial_object, false);
+            <string>/// Reset Frightened to Original
+with (obj_frightened_blue)
+    instance_change(initial_object, false);
 </string>
           </argument>
         </arguments>

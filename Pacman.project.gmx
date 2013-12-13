@@ -21,7 +21,6 @@
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
-  <scripts name="scripts"/>
   <objects name="objects">
     <objects name="Ghosts">
       <object>objects\obj_ghost</object>
@@ -60,6 +59,12 @@
   <rooms name="rooms">
     <room>rooms\rm_game</room>
   </rooms>
+  <constants number="4">
+    <constant name="RIGHT">0</constant>
+    <constant name="UP">1</constant>
+    <constant name="LEFT">2</constant>
+    <constant name="DOWN">3</constant>
+  </constants>
   <help>
     <rtf>help.rtf</rtf>
   </help>

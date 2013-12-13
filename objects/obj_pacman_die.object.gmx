@@ -61,9 +61,6 @@ y = ystart;
 instance_change(obj_pacman, true);
 
 instance_activate_object(obj_ghost);
-
-with (obj_controller)
-    event_perform(ev_other, ev_user0);
 </string>
           </argument>
         </arguments>
