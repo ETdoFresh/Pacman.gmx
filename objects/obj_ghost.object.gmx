@@ -3,7 +3,7 @@
   <spriteName>spr_ghost_body</spriteName>
   <solid>0</solid>
   <visible>-1</visible>
-  <depth>0</depth>
+  <depth>-1000</depth>
   <persistent>0</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
@@ -25,16 +25,270 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Set animation speed, set default body color
+            <string>/// Set Animation Speed
 var total_animation_seconds = .2;
 var seconds_per_frame = total_animation_seconds / image_number;
 var seconds_per_step = 1 / room_speed;
 image_speed = seconds_per_step / seconds_per_frame;
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Set Movement Speed
+move_speed = 2;
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Set Direction
+RIGHT = 0;
+UP = 1;
+LEFT = 2;
+DOWN = 3;
 
-// Default Body Color
+current_direction = LEFT;
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Set Default Body Color
 body_color = c_white;
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Create Targets
+my_target = instance_create(x - 32, y, obj_target);
+end_target = instance_create(x, y, obj_target);
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>// Set Initial State
+initial_state = obj_ghost_home;
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Wrap Ghosts
+if (x &lt; 16) 
+{
+    x = 16 + 28 * 32;
+    my_target.x = x;
+}
+else if (x &gt; 16 + 28 * 32)
+{
+    x = 16;
+    my_target.x = x;
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Set Immediate Target
 
-move_speed = 3;
+if (point_distance(x, y, my_target.x, my_target.y) &lt; move_speed)
+{
+    var new_direction = current_direction;
+    var distance = 10000;
+    var not_safe_zone = (x &lt; 352 || x &gt; 576) || ((y &lt; 352 || y &gt; 416) &amp;&amp; (y &lt; 736 || y &gt; 800))
+    var not_ghost_exit = (x &lt; 416 || x &gt; 512) || (y &lt; 352 || y &gt; 416)
+    
+    if (place_free(my_target.x - 32, my_target.y) &amp;&amp; current_direction != RIGHT)
+    {
+        if (point_distance(x - 32, y, end_target.x, end_target.y) &lt; distance)
+        {
+            new_direction = LEFT;
+            distance = point_distance(x - 32, y, end_target.x, end_target.y);
+        }
+    }
+    if (place_free(my_target.x, my_target.y - 32) &amp;&amp; current_direction != DOWN)
+    {
+        if (not_safe_zone)
+        {
+            if (point_distance(x, y - 32, end_target.x, end_target.y) &lt; distance)
+            {
+                new_direction = UP;
+                distance = point_distance(x, y - 32, end_target.x, end_target.y);
+            }
+        }
+    }
+    if (place_free(my_target.x + 32, my_target.y) &amp;&amp; current_direction != LEFT)
+    {
+        if (point_distance(x + 32, y, end_target.x, end_target.y) &lt; distance)
+        {
+            new_direction = RIGHT;
+            distance = point_distance(x + 32, y, end_target.x, end_target.y);
+        }
+    }
+    if (place_free(my_target.x, my_target.y + 32) &amp;&amp; current_direction != UP)
+    {
+        if (not_ghost_exit)
+        {
+            if (point_distance(x, y + 32, end_target.x, end_target.y) &lt; distance)
+            {
+                new_direction = DOWN;
+                distance = point_distance(x, y + 32, end_target.x, end_target.y);
+            }
+        }
+    }
+    
+    current_direction = new_direction
+
+    my_target.x = x;
+    my_target.y = y;
+    if (current_direction == RIGHT) my_target.x += 32;
+    else if (current_direction == UP) my_target.y -= 32;
+    else if (current_direction == LEFT) my_target.x -= 32;
+    else if (current_direction == DOWN) my_target.y += 32;
+    
+    with (my_target)
+        move_snap(32, 32);
+
+    move_towards_point(my_target.x, my_target.y, move_speed);
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="10">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Reset Instance
+x = xstart;
+y = ystart;
+my_target.x = xstart;
+my_target.y = ystart;
+instance_change(initial_state, true);
 </string>
           </argument>
         </arguments>
@@ -64,8 +318,15 @@ draw_sprite_ext(spr_ghost_body, -1, x, y, image_xscale, image_yscale, image_angl
 
 /// Eyes
 var pupil_color = make_color_rgb(60, 87, 167);
-draw_sprite_ext(spr_ghost_eyes, 4, x, y, image_xscale, image_yscale, image_angle, c_white, 1);
-draw_sprite_ext(spr_ghost_pupils, 4, x, y, image_xscale, image_yscale, image_angle, pupil_color, 1);
+
+var sub_image = 4;
+if (current_direction == UP) sub_image = 0;
+if (current_direction == DOWN) sub_image = 1;
+if (current_direction == LEFT) sub_image = 2;
+if (current_direction == RIGHT) sub_image = 3;
+
+draw_sprite_ext(spr_ghost_eyes, sub_image, x, y, image_xscale, image_yscale, image_angle, c_white, 1);
+draw_sprite_ext(spr_ghost_pupils, sub_image, x, y, image_xscale, image_yscale, image_angle, pupil_color, 1);
 </string>
           </argument>
         </arguments>

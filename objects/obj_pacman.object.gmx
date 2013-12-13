@@ -3,7 +3,7 @@
   <spriteName>spr_pacman</spriteName>
   <solid>0</solid>
   <visible>-1</visible>
-  <depth>0</depth>
+  <depth>-500</depth>
   <persistent>0</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
@@ -202,7 +202,7 @@ else
 score += 50;
 
 with (obj_ghost)
-    instance_change(obj_frightened_blue, true);
+    instance_change(obj_frightened_blue, false);
 
 with (obj_controller)
     alarm[0] = fright_seconds * room_speed;
@@ -472,7 +472,7 @@ target_image_angle = 180;
 
 with (obj_ghost)
     event_perform(ev_other, ev_user0);
-
+    
 instance_deactivate_object(obj_ghost);
 
 lives--;

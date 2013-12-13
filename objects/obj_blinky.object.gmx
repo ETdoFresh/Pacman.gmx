@@ -26,15 +26,10 @@
           <argument>
             <kind>1</kind>
             <string>/// Call Inherited Event, Set Body Color, Set Initial Object
-RIGHT = 0;
-UP = 1;
-LEFT = 2;
-DOWN = 3;
-
 event_inherited();
 body_color = c_red;
 initial_object = obj_blinky;
-current_direction = LEFT;
+initial_state = obj_blinky;
 </string>
           </argument>
         </arguments>
@@ -55,9 +50,7 @@ current_direction = LEFT;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Create Targets
-my_target = instance_create(x - 32, y, obj_target);
-end_target = instance_create(x, y, obj_target);
+            <string>/// Set Target Colors and Move
 
 with (my_target)
     image_blend = c_white;
@@ -74,86 +67,18 @@ move_towards_point(my_target.x, my_target.y, move_speed);
     <event eventtype="3" enumb="0">
       <action>
         <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
+        <id>604</id>
+        <kind>0</kind>
         <userelative>0</userelative>
         <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
+        <useapplyto>0</useapplyto>
+        <exetype>1</exetype>
+        <functionname>action_inherited</functionname>
         <codestring></codestring>
         <whoName>self</whoName>
         <relative>0</relative>
         <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Set Targets
-
-if (point_distance(x, y, my_target.x, my_target.y) &lt; move_speed)
-{
-    var new_direction = LEFT;
-    var distance = 10000;
-    
-    if (place_free(my_target.x - 32, my_target.y) &amp;&amp; current_direction != RIGHT)
-    {
-        if (point_distance(x - 32, y, end_target.x, end_target.y) &lt; distance)
-        {
-            new_direction = LEFT;
-            distance = point_distance(x - 32, y, end_target.x, end_target.y);
-        }
-    }
-    if (place_free(my_target.x, my_target.y - 32) &amp;&amp; current_direction != DOWN)
-    {
-        if (point_distance(x, y - 32, end_target.x, end_target.y) &lt; distance)
-        {
-            new_direction = UP;
-            distance = point_distance(x, y - 32, end_target.x, end_target.y);
-        }
-    }
-    if (place_free(my_target.x + 32, my_target.y) &amp;&amp; current_direction != LEFT)
-    {
-        if (point_distance(x + 32, y, end_target.x, end_target.y) &lt; distance)
-        {
-            new_direction = RIGHT;
-            distance = point_distance(x + 32, y, end_target.x, end_target.y);
-        }
-    }
-    if (place_free(my_target.x, my_target.y + 32) &amp;&amp; current_direction != UP)
-    {
-        if (point_distance(x, y + 32, end_target.x, end_target.y) &lt; distance)
-        {
-            new_direction = DOWN;
-            distance = point_distance(x, y + 32, end_target.x, end_target.y);
-        }
-    }
-    
-    current_direction = new_direction
-
-    my_target.x = x;
-    my_target.y = y;
-    if (current_direction == RIGHT) my_target.x += 32;
-    else if (current_direction == UP) my_target.y -= 32;
-    else if (current_direction == LEFT) my_target.x -= 32;
-    else if (current_direction == DOWN) my_target.y += 32;
-    
-    with (my_target)
-        move_snap(32, 32);
-
-    move_towards_point(my_target.x, my_target.y, move_speed);
-}
-
-if (instance_exists(obj_pacman))
-{
-    end_target.x = obj_pacman.x;
-    end_target.y = obj_pacman.y;
-}
-</string>
-          </argument>
-        </arguments>
       </action>
-    </event>
-    <event eventtype="7" enumb="10">
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -170,11 +95,13 @@ if (instance_exists(obj_pacman))
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Reset Instance
-x = xstart;
-y = ystart;
-my_target.x = xstart;
-my_target.y = ystart;
+            <string>/// Set End Target
+
+if (instance_exists(obj_pacman))
+{
+    end_target.x = obj_pacman.x;
+    end_target.y = obj_pacman.y;
+}
 </string>
           </argument>
         </arguments>

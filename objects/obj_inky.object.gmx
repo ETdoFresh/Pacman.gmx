@@ -11,6 +11,20 @@
     <event eventtype="0" enumb="0">
       <action>
         <libid>1</libid>
+        <id>604</id>
+        <kind>0</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>0</useapplyto>
+        <exetype>1</exetype>
+        <functionname>action_inherited</functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+      </action>
+      <action>
+        <libid>1</libid>
         <id>603</id>
         <kind>7</kind>
         <userelative>0</userelative>
@@ -25,10 +39,93 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Call Inherited Event, Set Body Color, Set Initial Object
-event_inherited();
+            <string>/// Set Body Color, Set Initial Object
 body_color = c_aqua;
 initial_object = obj_inky;
+instance_change(obj_ghost_home, true);
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Set Target Colors and Move
+
+with (my_target)
+    image_blend = c_white;
+
+with (end_target)
+    image_blend = other.body_color;
+    
+move_towards_point(my_target.x, my_target.y, move_speed);
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>604</id>
+        <kind>0</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>0</useapplyto>
+        <exetype>1</exetype>
+        <functionname>action_inherited</functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Set End Target
+
+if (instance_exists(obj_pacman) &amp;&amp; instance_exists(obj_blinky))
+{
+    var _x = obj_pacman.x;
+    var _y = obj_pacman.y;
+    
+    if (obj_pacman.current_direction == UP) _y -= 32 * 3;
+    else if (obj_pacman.current_direction == DOWN) _y += 32 * 3;
+    else if (obj_pacman.current_direction == LEFT) _x -= 32 * 3;
+    else if (obj_pacman.current_direction == RIGHT) _x += 32 * 3;
+    
+    var blinky_distance = point_distance(_x, _y, obj_blinky.x, obj_blinky.y);
+    var blinky_direction = point_direction(_x, _y, obj_blinky.x, obj_blinky.y);
+    
+    end_target.x = _x - lengthdir_x(blinky_distance, blinky_direction);
+    end_target.y = _y - lengthdir_y(blinky_distance, blinky_direction);
+}
 </string>
           </argument>
         </arguments>

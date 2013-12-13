@@ -32,6 +32,77 @@ fright_flash = 5;
           </argument>
         </arguments>
       </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Set Home Leave Timer
+alarm[1] = 30;
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="2" enumb="1">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Ghost Leaves Home
+
+var ghost_to_let_out = obj_pinky;
+if (instance_number(obj_ghost_home) == 2)
+    ghost_to_let_out = obj_inky;
+if (instance_number(obj_ghost_home) == 1)
+    ghost_to_let_out = obj_clyde;
+var let_ghost_out = false;
+
+for (var i = 0; i &lt; instance_number(obj_ghost_home); i++)
+{
+    with (instance_find(obj_ghost_home, i))
+    {
+        if (initial_object == ghost_to_let_out)
+        {
+            instance_change(obj_leaving_home, true);
+            let_ghost_out = true;
+        }
+    }
+}
+
+
+if (!let_ghost_out &amp;&amp; instance_number(obj_ghost_home) &gt; 0)
+    with(obj_ghost_home)
+        instance_change(obj_leaving_home, true);
+
+alarm[1] = 60;
+</string>
+          </argument>
+        </arguments>
+      </action>
     </event>
     <event eventtype="2" enumb="0">
       <action>
@@ -50,8 +121,8 @@ fright_flash = 5;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Change back to inital_object
-instance_change(initial_object, true);
+            <string>/// Change Frightened Back to Original
+instance_change(initial_object, false);
 </string>
           </argument>
         </arguments>
@@ -79,13 +150,6 @@ if (instance_exists(obj_pacman))
 {
     if (obj_pacman.x &lt; 16) obj_pacman.x = 16 + 28 * 32;
     else if (obj_pacman.x &gt; 16 + 28 * 32) obj_pacman.x = 16;
-}
-
-for (var i = 0; i &lt; instance_number(obj_ghost); i ++)
-{
-    var ghost = instance_find(obj_ghost, i);
-    if (ghost.x &lt; 16) ghost.x = 16 + 28 * 32;
-    else if (ghost.x &gt; 16 + 28 * 32) ghost.x = 16;
 }
 </string>
           </argument>
