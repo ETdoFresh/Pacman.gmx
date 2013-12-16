@@ -25,7 +25,8 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Draw Yellow Ellipse
+            <string>/// Draw Circle
+
 draw_set_color(image_blend);
 draw_ellipse(x - 10, y - 10, x + 10, y + 10, false);
 </string>

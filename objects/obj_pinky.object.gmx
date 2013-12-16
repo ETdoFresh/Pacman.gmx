@@ -41,8 +41,7 @@
             <kind>1</kind>
             <string>/// Set Body Color, Set Initial Object
 body_color = make_color_rgb(255, 192, 203);
-initial_object = obj_pinky;
-instance_change(obj_ghost_home, true);
+ai_state = "Home";
 </string>
           </argument>
         </arguments>

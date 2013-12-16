@@ -191,15 +191,18 @@ else
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Increment Score, frighten ghost, set timer, destroy power pellet
+            <string>/// Eat Power Pellet
 
 score += 50;
 
 with (obj_ghost)
-    instance_change(obj_frightened_blue, false);
+    state = "Frightened";
 
 with (obj_controller)
+{
     alarm[0] = fright_seconds * room_speed;
+    event_perform(ev_other, ev_user0);
+}
     
 with (other)
     instance_destroy();
@@ -219,21 +222,27 @@ with (other)
         <exetype>2</exetype>
         <functionname></functionname>
         <codestring></codestring>
-        <whoName>other</whoName>
+        <whoName>self</whoName>
         <relative>0</relative>
         <isnot>0</isnot>
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Increment Score and destroy pellet
+            <string>/// Eat Pellet
+
 score += 10;
-instance_destroy();
+
+with(obj_controller)
+    event_perform(ev_other, ev_user0);
+
+with (other)
+    instance_destroy();
 </string>
           </argument>
         </arguments>
       </action>
     </event>
-    <event eventtype="4" ename="obj_clyde">
+    <event eventtype="4" ename="obj_ghost">
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -250,80 +259,26 @@ instance_destroy();
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// User Defined 0 Event - Death
-event_perform(ev_other, ev_user0);
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="4" ename="obj_inky">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// User Defined 0 Event - Death
-event_perform(ev_other, ev_user0);
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="4" ename="obj_pinky">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// User Defined 0 Event - Death
-event_perform(ev_other, ev_user0);
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="4" ename="obj_blinky">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// User Defined 0 Event - Death
-event_perform(ev_other, ev_user0);
+            <string>/// React to Ghost Collision based on State
+
+if (other.state == "Normal")
+{
+    with (obj_ghost)
+        event_perform(ev_other, ev_user1);
+        
+    instance_deactivate_object(obj_ghost);
+    
+    lives--;
+    
+    instance_change(obj_pacman_die, true);
+    
+    with (my_target)
+        instance_destroy();
+}
+else if (other.state == "Frightened")
+{
+    other.state = "Eyes";
+}
 </string>
           </argument>
         </arguments>
@@ -424,111 +379,6 @@ target_image_angle = 90;
             <string>/// Set Direction LEFT
 desired_direction = LEFT;
 target_image_angle = 180;
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="5" enumb="27">
-      <action>
-        <libid>1</libid>
-        <id>332</id>
-        <kind>0</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>0</useapplyto>
-        <exetype>1</exetype>
-        <functionname>action_end_game</functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-      </action>
-    </event>
-    <event eventtype="7" enumb="10">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Hide and reset ghosts, lose a life, Pacman die
-
-with (obj_ghost)
-    event_perform(ev_other, ev_user0);
-    
-instance_deactivate_object(obj_ghost);
-
-lives--;
-
-instance_change(obj_pacman_die, true);
-</string>
-          </argument>
-        </arguments>
-      </action>
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Remove Target
-with (my_target)
-    instance_destroy();
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="8" enumb="0">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Draw self with variables on top right of room
-
-draw_self();
-
-draw_set_halign(fa_left);
-draw_set_color(c_white);
-draw_text(room_width - 200, room_height - 12, "X: " + string(x));
-draw_text(room_width - 200, room_height - 24, "Y: " + string(y));
-draw_text(room_width - 200, room_height - 36, "Direction: " + string(direction));
-draw_text(room_width - 200, room_height - 48, "Distant to Target:" + string(distance_to_point(my_target.x, my_target.y)));
-draw_text(room_width - 200, room_height - 60, "Target.X:" + string(my_target.x));
-draw_text(room_width - 200, room_height - 72, "Target.Y:" + string(my_target.y));
 </string>
           </argument>
         </arguments>

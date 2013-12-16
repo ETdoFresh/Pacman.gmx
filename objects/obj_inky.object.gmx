@@ -40,9 +40,9 @@
           <argument>
             <kind>1</kind>
             <string>/// Set Body Color, Set Initial Object
+
 body_color = c_aqua;
-initial_object = obj_inky;
-instance_change(obj_ghost_home, true);
+ai_state = "Home";
 </string>
           </argument>
         </arguments>

@@ -25,7 +25,8 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Stop moving, reset image angle, set animation speed
+            <string>/// Pacman Die
+
 speed = 0;
 image_angle = 0;
 
@@ -53,7 +54,7 @@ image_speed = image_number / room_speed / 1.5; // 1.5 second animation
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Start position, change back to pacman, unhide ghost
+            <string>/// Reset Pacman
 
 x = xstart;
 y = ystart;
@@ -83,7 +84,7 @@ instance_activate_object(obj_ghost);
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Stop animation, set restart alarm
+            <string>/// Pause Animation, Allow the player to mourn death :)
 
 image_index = image_index - 1;
 image_speed = 0;

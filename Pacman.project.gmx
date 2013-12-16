@@ -28,14 +28,6 @@
       <object>objects\obj_pinky</object>
       <object>objects\obj_inky</object>
       <object>objects\obj_clyde</object>
-      <object>objects\obj_frightened_blue</object>
-      <object>objects\obj_frightened_white</object>
-      <objects name="States">
-        <object>objects\obj_ghost_home</object>
-        <object>objects\obj_leaving_home</object>
-        <object>objects\obj_frightened</object>
-        <object>objects\obj_eyes</object>
-      </objects>
     </objects>
     <objects name="Pellets">
       <object>objects\obj_pellet</object>
@@ -59,11 +51,12 @@
   <rooms name="rooms">
     <room>rooms\rm_game</room>
   </rooms>
-  <constants number="4">
+  <constants number="5">
     <constant name="RIGHT">0</constant>
     <constant name="UP">1</constant>
     <constant name="LEFT">2</constant>
     <constant name="DOWN">3</constant>
+    <constant name="NONE">-1</constant>
   </constants>
   <help>
     <rtf>help.rtf</rtf>

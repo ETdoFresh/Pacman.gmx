@@ -25,79 +25,11 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Set time and flash variables
+            <string>/// Initiate Level Variables
 fright_seconds = 6;
 fright_flash = 5;
 
-alarm[1] = 60;
-</string>
-          </argument>
-        </arguments>
-      </action>
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Set Main Character Variables
-pacman = instance_find(obj_pacman, 0);
-blinky = instance_find(obj_blinky, 0);
-pinky = instance_find(obj_pinky, 0);
-inky = instance_find(obj_inky, 0);
-clyde = instance_find(obj_clyde, 0);
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="2" enumb="1">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Ghost Leaves Home
-
-alarm[1] = 60;
-
-var ghosts;
-ghosts[0] = pinky;
-ghosts[1] = inky;
-ghosts[2] = clyde;
-
-for (var i = 0; i &lt; array_length_1d(ghosts); i++)
-{
-    with (ghosts[i])
-    {
-        if (object_index == obj_ghost_home)
-        {
-            instance_change(obj_leaving_home, true);
-            exit;
-        }
-    }
-}
+level_state = "Chase";
 </string>
           </argument>
         </arguments>
@@ -121,8 +53,33 @@ for (var i = 0; i &lt; array_length_1d(ghosts); i++)
           <argument>
             <kind>1</kind>
             <string>/// Reset Frightened to Original
-with (obj_frightened_blue)
-    instance_change(initial_object, false);
+with (obj_ghost)
+    if (state == "Frightened")
+        state = "Normal";
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// (Debug) Reset Eyes to Original
+with (obj_ghost)
+    if (state == "Eyes")
+        state = "Normal";
 </string>
           </argument>
         </arguments>
@@ -156,6 +113,52 @@ if (instance_exists(obj_pacman))
         </arguments>
       </action>
     </event>
+    <event eventtype="7" enumb="10">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Process Dot Counter
+
+var ghosts;
+ghosts[0] = obj_pinky;
+ghosts[1] = obj_inky;
+ghosts[2] = obj_clyde;
+ghosts[3] = obj_blinky;
+
+for (var i = 0; i &lt; array_length_1d(ghosts); i++)
+{
+    var ghost = ghosts[i];
+    if (instance_exists(ghost) &amp;&amp; ghost.ai_state == "Home")
+    {
+        with (ghost)
+        {
+            dot_counter++;
+            if (dot_counter &gt;= dot_counter_limit)
+            {
+                ai_state = "Leave Home";
+                exit;
+            }
+        }
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
     <event eventtype="8" enumb="0">
       <action>
         <libid>1</libid>
@@ -182,6 +185,22 @@ draw_text_ext(1120, 0, "Score:
 </string>
           </argument>
         </arguments>
+      </action>
+    </event>
+    <event eventtype="9" enumb="27">
+      <action>
+        <libid>1</libid>
+        <id>332</id>
+        <kind>0</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>0</useapplyto>
+        <exetype>1</exetype>
+        <functionname>action_end_game</functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
       </action>
     </event>
   </events>

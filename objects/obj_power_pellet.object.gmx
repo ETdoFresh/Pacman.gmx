@@ -25,7 +25,8 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Set Flashing Timer and Alarm
+            <string>/// Create Flashing Power Pellet
+
 flash_time = 0.167;
 flash_steps = room_speed * flash_time;
 
@@ -52,7 +53,7 @@ alarm[0] = flash_steps;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Toggle Visibility, Reset Alarm
+            <string>/// Flash Power Pellet
 visible = !visible;
 alarm[0] = flash_steps;
 </string>
