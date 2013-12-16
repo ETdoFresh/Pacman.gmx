@@ -167,6 +167,7 @@ if (ai_state == "Leave Home")
             }
             move_towards_point(my_target.x, my_target.y, move_speed);
             ai_state = obj_controller.level_state;
+            current_target = 1;
         }
     }  
 }
@@ -269,6 +270,7 @@ my_target.y = ystart;
 ai_state = "Home";
 state = "Normal";
 current_direction = -1;
+current_target = 1;
 </string>
           </argument>
         </arguments>
