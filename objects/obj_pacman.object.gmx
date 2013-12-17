@@ -196,12 +196,22 @@ else
 score += 50;
 
 with (obj_ghost)
-    state = "Frightened";
+{
+    if (state != "Eyes")
+    {
+        state = "Frightened";
+        
+        if (ai_state != "Home" &amp;&amp; ai_state != "Leave Home")
+            ai_state = "Wander";
+        
+        event_perform(ev_other, ev_user2); // Reverse Direction
+    }
+}
 
 with (obj_controller)
 {
     alarm[0] = fright_seconds * room_speed;
-    event_perform(ev_other, ev_user0);
+    event_perform(ev_other, ev_user0); // Process Dot Counter
 }
     
 with (other)
@@ -278,6 +288,7 @@ if (other.state == "Normal")
 else if (other.state == "Frightened")
 {
     other.state = "Eyes";
+    other.ai_state = "Return Home";
 }
 </string>
           </argument>

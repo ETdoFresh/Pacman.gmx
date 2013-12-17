@@ -33,7 +33,10 @@ var seconds_per_frame = total_animation_seconds / image_number;
 var seconds_per_step = 1 / room_speed;
 image_speed = seconds_per_step / seconds_per_frame;
 
-move_speed = 2;
+normal_speed = 2;
+eyes_speed = 4;
+home_speed = 1.5;
+frightened_speed = 2 * 0.5;
 current_direction = NONE;
 body_color = c_white;
 dot_counter = 0;
@@ -142,8 +145,8 @@ if (ai_state == "Leave Home")
     {
         if (object_index == obj_inky) current_direction = RIGHT;
         if (object_index == obj_clyde) current_direction = LEFT;
-        move_towards_point(first_target_x, first_target_y, move_speed * 0.5);
-        if (point_distance(x, y, first_target_x, first_target_y) &lt; move_speed)
+        move_towards_point(first_target_x, first_target_y, home_speed * 0.5);
+        if (point_distance(x, y, first_target_x, first_target_y) &lt; home_speed)
         {
             current_target = 2;
         }
@@ -153,21 +156,31 @@ if (ai_state == "Leave Home")
     else if (current_target == 2)
     {
         current_direction = UP;
-        move_towards_point(second_target_x, second_target_y, move_speed * 0.5);
+        move_towards_point(second_target_x, second_target_y, home_speed * 0.5);
         
         // Left home!
-        if (point_distance(x, y, second_target_x, second_target_y) &lt; move_speed)
+        if (point_distance(x, y, second_target_x, second_target_y) &lt; home_speed)
         {
             current_direction = LEFT;
+            current_target = 1;
+            
             with (my_target)
             {
                 x = other.x - 32;
                 y = other.y;
                 move_snap(32, 32);
             }
-            move_towards_point(my_target.x, my_target.y, move_speed);
-            ai_state = obj_controller.level_state;
-            current_target = 1;
+            
+            if (state == "Frightened")
+            {
+                ai_state = "Wander";
+                move_towards_point(my_target.x, my_target.y, frightened_speed);
+            }
+            else
+            {
+                ai_state = obj_controller.level_state;
+                move_towards_point(my_target.x, my_target.y, normal_speed);
+            }
         }
     }  
 }
@@ -218,6 +231,13 @@ if (ai_state == "Chase")
           <argument>
             <kind>1</kind>
             <string>/// Scatter State
+
+if (ai_state == "Scatter")
+{
+    end_target.x = scatter_target_x;
+    end_target.y = scatter_target_y;
+    event_perform(ev_other, ev_user0);
+}
 </string>
           </argument>
         </arguments>
@@ -239,6 +259,89 @@ if (ai_state == "Chase")
           <argument>
             <kind>1</kind>
             <string>/// Wander State
+
+if (ai_state == "Wander")
+{
+    with (end_target)
+    {
+        x = random(28 * 32);
+        y = random(31 * 32);
+        move_snap(32, 32);
+    }
+    event_perform(ev_other, ev_user0);
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Return Home State
+
+if (ai_state == "Return Home")
+{
+    end_target.x = 464;
+    end_target.y = 384;
+    
+    if (point_distance(x, y, end_target.x, end_target.y) &lt; eyes_speed)
+    {
+        ai_state = obj_controller.level_state;
+        state = "Normal";
+    }
+    else
+    {
+        event_perform(ev_other, ev_user0);
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="12">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Reverse Direction
+
+my_target.x = x;
+my_target.y = y;
+    
+if (current_direction == LEFT) 
+    current_direction = RIGHT;
+else if (current_direction == RIGHT) 
+    current_direction = LEFT;
+else if (current_direction == UP) 
+    current_direction = DOWN;
+else if (current_direction == DOWN) 
+    current_direction = UP;
 </string>
           </argument>
         </arguments>
@@ -294,6 +397,10 @@ current_target = 1;
           <argument>
             <kind>1</kind>
             <string>/// Set Immediate Target
+
+var move_speed = normal_speed;
+if (state == "Frightened") move_speed = frightened_speed;
+if (state == "Eyes") move_speed = eyes_speed;
 
 if (point_distance(x, y, my_target.x, my_target.y) &lt; move_speed)
 {

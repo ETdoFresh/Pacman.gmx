@@ -89,6 +89,9 @@ instance_activate_object(obj_ghost);
 image_index = image_index - 1;
 image_speed = 0;
 alarm[0] = room_speed;
+level_iteration = 0;
+level_state = "Scatter";
+alarm[1] = 7 * room_speed;
 </string>
           </argument>
         </arguments>

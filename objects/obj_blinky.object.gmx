@@ -30,9 +30,11 @@
 event_inherited();
 
 body_color = c_red;
-ai_state = "Chase";
+ai_state = "Scatter";
 current_direct = LEFT;
 dot_counter_limit = 0;
+scatter_target_x = 26 * 32;
+scatter_target_y = -3 * 32;
 
 with (my_target)
     image_blend = c_white;
@@ -65,7 +67,7 @@ with (end_target)
 
 event_inherited();
 
-if (instance_exists(obj_pacman))
+if (ai_state == "Chase" &amp;&amp; instance_exists(obj_pacman))
 {
     end_target.x = obj_pacman.x;
     end_target.y = obj_pacman.y;
