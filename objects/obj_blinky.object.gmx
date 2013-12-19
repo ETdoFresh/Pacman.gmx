@@ -30,8 +30,6 @@
 event_inherited();
 
 body_color = c_red;
-ai_state = "Scatter";
-current_direct = LEFT;
 dot_counter_limit = 0;
 scatter_target_x = 26 * 32;
 scatter_target_y = -3 * 32;
@@ -94,10 +92,11 @@ if (ai_state == "Chase" &amp;&amp; instance_exists(obj_pacman))
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Reset State to Chase (not Home)
+            <string>/// Reset State to Scatter (not Home)
 
 event_inherited();
-ai_state = obj_controller.level_state;
+current_direction = LEFT;
+ai_state = "Scatter";
 </string>
           </argument>
         </arguments>

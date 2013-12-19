@@ -37,11 +37,10 @@ normal_speed = 2;
 eyes_speed = 4;
 home_speed = 1.5;
 frightened_speed = 2 * 0.5;
-current_direction = NONE;
+tunnel_speed = 1;
 body_color = c_white;
 dot_counter = 0;
 dot_counter_limit = 999;
-current_target = 1;
 
 // Initialize Leave Home Variables
 first_target_x = 464;
@@ -49,16 +48,13 @@ first_target_y = 480;
 second_target_x = 464;
 second_target_y = 384;
 
-
-// Set Initial States
-state = "Normal";
-ai_state = "Home";
-
 // Create Targets
 my_target = instance_create(x, y, obj_target);
 end_target = instance_create(x, y, obj_target);
 scatter_target_x = x;
 scatter_target_y = y;
+
+event_perform(ev_other, ev_user1);
 </string>
           </argument>
         </arguments>
@@ -372,7 +368,7 @@ my_target.y = ystart;
 
 ai_state = "Home";
 state = "Normal";
-current_direction = -1;
+current_direction = NONE;
 current_target = 1;
 </string>
           </argument>
@@ -401,6 +397,9 @@ current_target = 1;
 var move_speed = normal_speed;
 if (state == "Frightened") move_speed = frightened_speed;
 if (state == "Eyes") move_speed = eyes_speed;
+
+if ((x &lt; 192 || x &gt; 736) &amp;&amp; y &gt; 448 &amp;&amp; y &lt; 512)
+    move_speed = tunnel_speed;
 
 if (point_distance(x, y, my_target.x, my_target.y) &lt; move_speed)
 {
