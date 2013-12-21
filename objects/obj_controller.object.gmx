@@ -30,6 +30,7 @@ fright_seconds = 6;
 fright_flash = 5;
 
 global_dot_counter = 0;
+bonus_dot_counter = 0;
 did_die_on_level = false;
 
 event_perform(ev_other, ev_user1); // Reset Level State
@@ -155,6 +156,9 @@ with (obj_ghost)
         state = "Normal";
     if (ai_state == "Wander")
         ai_state = other.level_state;
+        
+    alarm[0] = -1;
+    frightened_is_blue = true;
 }
 </string>
           </argument>
@@ -183,6 +187,37 @@ if (instance_exists(obj_pacman))
 {
     if (obj_pacman.x &lt; 16) obj_pacman.x = 16 + 28 * 32;
     else if (obj_pacman.x &gt; 16 + 28 * 32) obj_pacman.x = 16;
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="12">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Add a yum, yum bonus fruit
+
+//464, 576
+
+
+with (instance_create(464, 576, obj_bonus_fruit))
+{
+    sprite_index = spr_cherry;
 }
 </string>
           </argument>
@@ -243,7 +278,13 @@ ghosts[1] = obj_inky;
 ghosts[2] = obj_clyde;
 ghosts[3] = obj_blinky;
 
+// Reset Evict Ghost Timer
 alarm[2] = 4 * room_speed;
+
+// Bonus Fruit Check
+bonus_dot_counter++;
+if (bonus_dot_counter == 70 || bonus_dot_counter == 170)
+    event_perform(ev_other, ev_user2);
 
 if (did_die_on_level)
 {

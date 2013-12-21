@@ -37,6 +37,7 @@ normal_speed = 2;
 eyes_speed = 4;
 home_speed = 1.5;
 frightened_speed = 2 * 0.5;
+frightened_is_blue = true;
 tunnel_speed = 1;
 body_color = c_white;
 dot_counter = 0;
@@ -55,6 +56,32 @@ scatter_target_x = x;
 scatter_target_y = y;
 
 event_perform(ev_other, ev_user1);
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="2" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Flash Ghost
+
+alarm[0] = 0.33 * room_speed;
+frightened_is_blue = !frightened_is_blue;
 </string>
           </argument>
         </arguments>
@@ -307,6 +334,32 @@ if (ai_state == "Return Home")
           </argument>
         </arguments>
       </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Check for Flashing
+
+if (state == "Frightened" &amp;&amp; alarm[0] == -1)
+    with (obj_controller)
+        if (alarm[0] &lt; fright_flash * 2 * 0.33 * room_speed)
+            other.alarm[0] = 0.33 * room_speed;
+</string>
+          </argument>
+        </arguments>
+      </action>
     </event>
     <event eventtype="7" enumb="12">
       <action>
@@ -528,13 +581,24 @@ if (state == "Normal")
 
 if (state == "Frightened")
 {
-    // Draw Body
-    var draw_color = make_color_rgb(60, 87, 167);
-    draw_sprite_ext(spr_ghost_body, -1, x, y, image_xscale, image_yscale, image_angle, draw_color, 1);
-    
-    // Draw Eyes
-    var eye_color = make_color_rgb(255, 207, 50);
-    draw_sprite_ext(spr_ghost_eyes, 5, x, y, image_xscale, image_yscale, image_angle, eye_color, 1);
+    if (frightened_is_blue)
+    {
+        // Draw Body
+        var draw_color = make_color_rgb(60, 87, 167);
+        draw_sprite_ext(spr_ghost_body, -1, x, y, image_xscale, image_yscale, image_angle, draw_color, 1);
+        
+        // Draw Eyes
+        var eye_color = make_color_rgb(255, 207, 50);
+        draw_sprite_ext(spr_ghost_eyes, 5, x, y, image_xscale, image_yscale, image_angle, eye_color, 1);
+    }
+    else
+    {        
+        // Draw Body
+        draw_sprite_ext(spr_ghost_body, -1, x, y, image_xscale, image_yscale, image_angle, c_white, 1);
+        
+        // Draw Eyes
+        draw_sprite_ext(spr_ghost_eyes, 5, x, y, image_xscale, image_yscale, image_angle, c_red, 1);
+    }
 }
 </string>
           </argument>

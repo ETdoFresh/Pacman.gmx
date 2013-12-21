@@ -6,29 +6,51 @@
   <NewExtensions/>
   <sounds name="sound"/>
   <sprites name="sprites">
-    <sprite>sprites\spr_pacman</sprite>
-    <sprite>sprites\spr_pacman_die</sprite>
-    <sprite>sprites\spr_ghost_body</sprite>
-    <sprite>sprites\spr_ghost_eyes</sprite>
-    <sprite>sprites\spr_ghost_pupils</sprite>
-    <sprite>sprites\spr_pellet</sprite>
-    <sprite>sprites\spr_power_pellet</sprite>
-    <sprite>sprites\spr_outer_wall</sprite>
-    <sprite>sprites\spr_outer_corner</sprite>
-    <sprite>sprites\spr_outer_bit</sprite>
-    <sprite>sprites\spr_inner_wall</sprite>
-    <sprite>sprites\spr_inner_corner</sprite>
-    <sprite>sprites\spr_door</sprite>
+    <sprites name="Fruits">
+      <sprite>sprites\spr_cherry</sprite>
+      <sprite>sprites\spr_strawberry</sprite>
+    </sprites>
+    <sprites name="Ghosts">
+      <sprite>sprites\spr_ghost_body</sprite>
+      <sprite>sprites\spr_ghost_eyes</sprite>
+      <sprite>sprites\spr_ghost_pupils</sprite>
+    </sprites>
+    <sprites name="Pacman">
+      <sprite>sprites\spr_pacman</sprite>
+      <sprite>sprites\spr_pacman_die</sprite>
+    </sprites>
+    <sprites name="Pellets">
+      <sprite>sprites\spr_pellet</sprite>
+      <sprite>sprites\spr_power_pellet</sprite>
+    </sprites>
+    <sprites name="Walls">
+      <sprite>sprites\spr_outer_wall</sprite>
+      <sprite>sprites\spr_outer_corner</sprite>
+      <sprite>sprites\spr_outer_bit</sprite>
+      <sprite>sprites\spr_inner_wall</sprite>
+      <sprite>sprites\spr_inner_corner</sprite>
+      <sprite>sprites\spr_door</sprite>
+    </sprites>
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
   <objects name="objects">
+    <objects name="Fruits">
+      <object>objects\obj_bonus_fruit</object>
+    </objects>
     <objects name="Ghosts">
       <object>objects\obj_ghost</object>
       <object>objects\obj_blinky</object>
       <object>objects\obj_pinky</object>
       <object>objects\obj_inky</object>
       <object>objects\obj_clyde</object>
+    </objects>
+    <objects name="Movement">
+      <object>objects\obj_target</object>
+    </objects>
+    <objects name="Pacman">
+      <object>objects\obj_pacman</object>
+      <object>objects\obj_pacman_die</object>
     </objects>
     <objects name="Pellets">
       <object>objects\obj_pellet</object>
@@ -43,12 +65,8 @@
       <object>objects\obj_inner_corner</object>
       <object>objects\obj_door</object>
     </objects>
-    <objects name="Movement">
-      <object>objects\obj_target</object>
-    </objects>
-    <object>objects\obj_pacman</object>
-    <object>objects\obj_pacman_die</object>
     <object>objects\obj_controller</object>
+    <object>objects\obj_points</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_game</room>
