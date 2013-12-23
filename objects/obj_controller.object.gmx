@@ -26,8 +26,47 @@
           <argument>
             <kind>1</kind>
             <string>/// Initiate Level Variables
-fright_seconds = 6;
-fright_flash = 5;
+
+level = 1;
+
+ini_open("levels.ini");
+
+var level_string = "Level" + string(level);
+bonus_symbol = ini_read_string(level_string, "Bonus Symbol", "None");
+bonus_points = ini_read_real(level_string, "Bonus Points", 123);
+pacman_speed = real(ini_read_string(level_string, "Pac-Man Speed", "50%"));
+pacman_dots_speed = 0;
+ghost_speed = 0;
+ghost_tunnel_speed = 0;
+elroy1dotsleft = 0;
+elroy1dotsspeed = 0;
+elroy2dotsleft = 0;
+elroy2dotsspeed = 0;
+fright_pacman_speed = 0;
+fright_pacman_dots_speed = 0;
+fright_ghost_speed = 0;
+fright_time = 0;
+number_of_flashes = 0;
+pinky_dot_limit = 0;
+inky_dot_limit = 0;
+clyde_dot_limit = 0;
+global_pinky = 0;
+global_inky = 0;
+global_clyde = 0;
+timer_limit = 0;
+scatter1 = 0;
+scatter2 = 0;
+scatter3 = 0;
+scatter4 = 0;
+chase1 = 0;
+chase2 = 0;
+chase3 = 0;
+chase4 = 0;
+
+fright_seconds = ini_read_real(level_string, "Fright Time", 10);
+fright_flash = ini_read_real(level_string, "Number of Flashes", 10);
+
+ini_close();
 
 global_dot_counter = 0;
 bonus_dot_counter = 0;
