@@ -30,6 +30,11 @@
 level = 1;
 event_perform(ev_other, ev_user3); // Load Level Settings
 event_perform(ev_other, ev_user1); // Reset Level State
+
+is_paused = false;
+pause_states = 0;
+
+ghost_points = 200;
 </string>
           </argument>
         </arguments>
@@ -415,6 +420,82 @@ draw_set_color(c_white);
 
 draw_text_ext(1120, 0, "Score: 
 " + string(score), 15, 300);
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="9" enumb="32">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Toggle Pause
+
+is_paused = !is_paused;
+
+// Store state and set to pause
+if (is_paused)
+{
+    pause_states[4] = obj_pacman.state;
+    
+    if (instance_exists(obj_bonus_fruit))
+        pause_states[5] = obj_bonus_fruit.alarm[0];
+    
+    for (var i = 0; i &lt; 4; i++)
+        with (instance_find(obj_ghost, i))
+        {
+            other.pause_states[i] = ai_state;
+            other.pause_states[i + 20] = alarm[0];
+        }
+    
+    for (var i = 0; i &lt; 12; i++)
+        pause_states[10 + i] = alarm[i];        
+           
+    obj_pacman.state = "Pause";
+    for (var i = 0; i &lt; 4; i++)
+        with (instance_find(obj_ghost, i))
+        {
+            ai_state = "Pause";
+            alarm[0] = -1;
+        }
+
+    if (instance_exists(obj_bonus_fruit))
+        obj_bonus_fruit.alarm[0] = -1;
+
+    for (var i = 0; i &lt; 12; i++)
+        alarm[i] = -1;   
+}
+
+// Restore State
+else
+{
+    obj_pacman.state = pause_states[4];
+    for (var i = 0; i &lt; 4; i++)
+        with (instance_find(obj_ghost, i))
+        {
+            ai_state = other.pause_states[i];
+            alarm[0] = other.pause_states[i + 20]
+        }
+    
+    if (instance_exists(obj_bonus_fruit))
+        obj_bonus_fruit.alarm[0] = pause_states[5];
+
+    for (var i = 0; i &lt; 12; i++)
+        alarm[i] = pause_states[10 + i];
+}
 </string>
           </argument>
         </arguments>

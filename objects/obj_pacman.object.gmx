@@ -27,6 +27,8 @@
             <kind>1</kind>
             <string>/// Setup Direction, Image, Movement, Target
 
+state = "Normal";
+
 // Image Setup
 image_speed = 1;
 image_blend = c_yellow;
@@ -50,6 +52,34 @@ my_target.image_blend = c_yellow;
       </action>
     </event>
     <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Pause State
+
+if (state == "Pause")
+{
+    speed = 0;
+    image_speed = 0;
+    exit;
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -194,6 +224,7 @@ else
             <string>/// Eat Power Pellet
 
 score += 50;
+obj_controller.ghost_score = 200;
 
 with (obj_ghost)
 {
@@ -293,6 +324,8 @@ else if (other.state == "Frightened")
 {
     other.state = "Eyes";
     other.ai_state = "Return Home";
+    score += obj_controller.ghost_score;
+    obj_controller.ghost_score *= 2;
 }
 </string>
           </argument>

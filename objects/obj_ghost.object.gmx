@@ -31,7 +31,8 @@
 var total_animation_seconds = .2;
 var seconds_per_frame = total_animation_seconds / image_number;
 var seconds_per_step = 1 / room_speed;
-image_speed = seconds_per_step / seconds_per_frame;
+animation_speed = seconds_per_step / seconds_per_frame;
+image_speed = animation_speed;
 
 normal_speed = 2;
 eyes_speed = 4;
@@ -88,6 +89,37 @@ frightened_is_blue = !frightened_is_blue;
       </action>
     </event>
     <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Pause State
+
+if (ai_state = "Pause")
+{
+    speed = 0; // Stay still
+    image_speed = 0;
+}
+else
+{
+    image_speed = 1;
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -317,17 +349,48 @@ if (ai_state == "Wander")
 
 if (ai_state == "Return Home")
 {
-    end_target.x = 464;
-    end_target.y = 384;
-    
-    if (point_distance(x, y, end_target.x, end_target.y) &lt; eyes_speed)
+    if (current_target == 1)
     {
-        ai_state = obj_controller.level_state;
-        state = "Normal";
+        end_target.x = second_target_x;
+        end_target.y = second_target_y;
+        
+        if (point_distance(x, y, end_target.x, end_target.y) &lt; eyes_speed)
+        {
+            current_target = 2;
+            current_direction = DOWN;
+        }
+        else
+            event_perform(ev_other, ev_user0);
+    }
+    else if (current_target == 2)
+    {
+        move_towards_point(first_target_x, first_target_y, speed);
+        if (point_distance(x, y, first_target_x, first_target_y) &lt; eyes_speed)
+        {
+            current_target = 3;
+        
+            if (object_index == obj_blinky)
+            {
+                current_target = 1;
+                ai_state = "Leave Home";
+                state = "Normal";
+            }
+            else if (object_index == obj_inky)
+                current_direction = LEFT;
+            else if (object_index == obj_clyde)
+                current_direction = RIGHT;
+        }
     }
     else
     {
-        event_perform(ev_other, ev_user0);
+        move_towards_point(xstart, ystart, speed);
+        if (point_distance(x, y, xstart, ystart) &lt; eyes_speed)
+        {
+            ai_state = "Home";
+            state = "Normal";
+            current_target = 1;
+            current_direction = NONE;
+        }
     }
 }
 </string>
@@ -352,10 +415,11 @@ if (ai_state == "Return Home")
             <kind>1</kind>
             <string>/// Check for Flashing
 
-if (state == "Frightened" &amp;&amp; alarm[0] == -1)
-    with (obj_controller)
-        if (alarm[0] &lt; number_of_flashes * 2 * 0.33 * room_speed)
-            other.alarm[0] = 0.33 * room_speed;
+if (ai_state != "Pause")
+    if (state == "Frightened" &amp;&amp; alarm[0] == -1)
+        with (obj_controller)
+            if (alarm[0] &lt; number_of_flashes * 2 * 0.33 * room_speed)
+                other.alarm[0] = 0.33 * room_speed;
 </string>
           </argument>
         </arguments>
@@ -448,11 +512,12 @@ current_target = 1;
             <string>/// Set Immediate Target
 
 var move_speed = normal_speed;
-if (state == "Frightened") move_speed = frightened_speed;
-if (state == "Eyes") move_speed = eyes_speed;
 
 if ((x &lt; 192 || x &gt; 736) &amp;&amp; y &gt; 448 &amp;&amp; y &lt; 512)
     move_speed = tunnel_speed;
+
+if (state == "Frightened") move_speed = frightened_speed;
+if (state == "Eyes") move_speed = eyes_speed;
 
 if (point_distance(x, y, my_target.x, my_target.y) &lt; move_speed)
 {
@@ -511,9 +576,9 @@ if (point_distance(x, y, my_target.x, my_target.y) &lt; move_speed)
     
     with (my_target)
         move_snap(32, 32);
-
-    move_towards_point(my_target.x, my_target.y, move_speed);
 }
+
+move_towards_point(my_target.x, my_target.y, move_speed);
 </string>
           </argument>
         </arguments>
