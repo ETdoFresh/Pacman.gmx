@@ -208,14 +208,14 @@ with (obj_ghost)
     }
 }
 
-with (obj_controller)
-{
-    alarm[0] = fright_seconds * room_speed;
-    event_perform(ev_other, ev_user0); // Process Dot Counter
-}
-    
 with (other)
     instance_destroy();
+
+with (obj_controller)
+{
+    alarm[0] = fright_time * room_speed;
+    event_perform(ev_other, ev_user0); // Process Dot Counter
+}
 </string>
           </argument>
         </arguments>
@@ -242,11 +242,11 @@ with (other)
 
 score += 10;
 
-with(obj_controller)
-    event_perform(ev_other, ev_user0);
-
 with (other)
     instance_destroy();
+
+with(obj_controller)
+    event_perform(ev_other, ev_user0);
 </string>
           </argument>
         </arguments>

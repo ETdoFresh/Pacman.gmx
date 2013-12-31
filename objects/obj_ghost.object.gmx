@@ -354,7 +354,7 @@ if (ai_state == "Return Home")
 
 if (state == "Frightened" &amp;&amp; alarm[0] == -1)
     with (obj_controller)
-        if (alarm[0] &lt; fright_flash * 2 * 0.33 * room_speed)
+        if (alarm[0] &lt; number_of_flashes * 2 * 0.33 * room_speed)
             other.alarm[0] = 0.33 * room_speed;
 </string>
           </argument>
