@@ -357,7 +357,7 @@ with (other)
 {
     with (instance_create(x, y, obj_points))
     {
-        text = 100;
+        text = obj_controller.bonus_points;
         text_color = c_purple;
     }
     instance_destroy();

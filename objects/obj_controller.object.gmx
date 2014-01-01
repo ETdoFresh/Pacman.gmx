@@ -34,6 +34,8 @@ event_perform(ev_other, ev_user1); // Reset Level State
 is_paused = false;
 pause_states = 0;
 
+is_loading = false;
+
 ghost_points = 200;
 </string>
           </argument>
@@ -188,6 +190,80 @@ if (instance_exists(obj_pacman))
 {
     if (obj_pacman.x &lt; 16) obj_pacman.x = 16 + 28 * 32;
     else if (obj_pacman.x &gt; 16 + 28 * 32) obj_pacman.x = 16;
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="14">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Process Pause
+
+// Store states and change states to Pause
+if (is_paused)
+{
+    pause_states[4] = obj_pacman.state;
+    
+    if (instance_exists(obj_bonus_fruit))
+        pause_states[5] = obj_bonus_fruit.alarm[0];
+    
+    for (var i = 0; i &lt; 4; i++)
+        with (instance_find(obj_ghost, i))
+        {
+            other.pause_states[i] = ai_state;
+            other.pause_states[i + 20] = alarm[0];
+        }
+    
+    for (var i = 0; i &lt; 12; i++)
+        pause_states[10 + i] = alarm[i];        
+           
+    obj_pacman.state = "Pause";
+    for (var i = 0; i &lt; 4; i++)
+        with (instance_find(obj_ghost, i))
+        {
+            ai_state = "Pause";
+            alarm[0] = -1;
+        }
+
+    if (instance_exists(obj_bonus_fruit))
+        obj_bonus_fruit.alarm[0] = -1;
+
+    for (var i = 0; i &lt; 12; i++)
+        alarm[i] = -1;   
+}
+
+// Restore State
+else
+{
+    obj_pacman.state = pause_states[4];
+    for (var i = 0; i &lt; 4; i++)
+        with (instance_find(obj_ghost, i))
+        {
+            ai_state = other.pause_states[i];
+            alarm[0] = other.pause_states[i + 20]
+        }
+    
+    if (instance_exists(obj_bonus_fruit))
+        obj_bonus_fruit.alarm[0] = pause_states[5];
+
+    for (var i = 0; i &lt; 12; i++)
+        alarm[i] = pause_states[10 + i];
 }
 </string>
           </argument>
@@ -350,8 +426,9 @@ ghosts[3] = obj_blinky;
 if (!instance_exists(obj_pellet) &amp;&amp; !instance_exists(obj_power_pellet))
 {
     level++;
-    event_perform(ev_other, ev_user3);
-    room_restart();
+    timeline_index = tl_level_complete
+    timeline_position = 0;
+    timeline_running = true;
     exit;
 }
 
@@ -378,15 +455,18 @@ else
     for (var i = 0; i &lt; array_length_1d(ghosts); i++)
     {
         var ghost = ghosts[i];
-        if (instance_exists(ghost) &amp;&amp; ghost.ai_state == "Home")
+        if (instance_exists(ghost))
         {
-            with (ghost)
+            if (ghost.ai_state == "Home")
             {
-                dot_counter++;
-                if (dot_counter &gt;= dot_counter_limit)
+                with (ghost)
                 {
-                    ai_state = "Leave Home";
-                    exit;
+                    dot_counter++;
+                    if (dot_counter &gt;= dot_counter_limit)
+                    {
+                        ai_state = "Leave Home";
+                        exit;
+                    }
                 }
             }
         }
@@ -444,58 +524,11 @@ draw_text_ext(1120, 0, "Score:
             <kind>1</kind>
             <string>/// Toggle Pause
 
+if (is_loading) exit;
+
 is_paused = !is_paused;
 
-// Store state and set to pause
-if (is_paused)
-{
-    pause_states[4] = obj_pacman.state;
-    
-    if (instance_exists(obj_bonus_fruit))
-        pause_states[5] = obj_bonus_fruit.alarm[0];
-    
-    for (var i = 0; i &lt; 4; i++)
-        with (instance_find(obj_ghost, i))
-        {
-            other.pause_states[i] = ai_state;
-            other.pause_states[i + 20] = alarm[0];
-        }
-    
-    for (var i = 0; i &lt; 12; i++)
-        pause_states[10 + i] = alarm[i];        
-           
-    obj_pacman.state = "Pause";
-    for (var i = 0; i &lt; 4; i++)
-        with (instance_find(obj_ghost, i))
-        {
-            ai_state = "Pause";
-            alarm[0] = -1;
-        }
-
-    if (instance_exists(obj_bonus_fruit))
-        obj_bonus_fruit.alarm[0] = -1;
-
-    for (var i = 0; i &lt; 12; i++)
-        alarm[i] = -1;   
-}
-
-// Restore State
-else
-{
-    obj_pacman.state = pause_states[4];
-    for (var i = 0; i &lt; 4; i++)
-        with (instance_find(obj_ghost, i))
-        {
-            ai_state = other.pause_states[i];
-            alarm[0] = other.pause_states[i + 20]
-        }
-    
-    if (instance_exists(obj_bonus_fruit))
-        obj_bonus_fruit.alarm[0] = pause_states[5];
-
-    for (var i = 0; i &lt; 12; i++)
-        alarm[i] = pause_states[10 + i];
-}
+event_perform(ev_other, ev_user4); // Process Pause
 </string>
           </argument>
         </arguments>
