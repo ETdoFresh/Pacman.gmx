@@ -323,9 +323,25 @@ if (other.state == "Normal")
 else if (other.state == "Frightened")
 {
     other.state = "Eyes";
-    other.ai_state = "Return Home";
-    score += obj_controller.ghost_score;
-    obj_controller.ghost_score *= 2;
+    other.ai_state = "Return Home"; 
+    
+    with (instance_create(other.x, other.y, obj_points))
+    {
+        text = string(obj_controller.ghost_score);
+        text_color = c_aqua;
+        alarm[0] = 1 * room_speed;
+    }
+    
+    with (obj_controller)
+    {
+        //is_paused = true;
+        //event_perform(ev_other, ev_user4);
+        score += ghost_score;
+        ghost_score *= 2;
+    }
+    
+    //instance_deactivate_object(self);
+    //instance_deactivate_object(other);
 }
 </string>
           </argument>

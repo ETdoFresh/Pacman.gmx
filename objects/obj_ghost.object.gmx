@@ -107,7 +107,7 @@ frightened_is_blue = !frightened_is_blue;
             <kind>1</kind>
             <string>/// Pause State
 
-if (ai_state = "Pause")
+if (ai_state == "Pause")
 {
     speed = 0; // Stay still
     image_speed = 0;
