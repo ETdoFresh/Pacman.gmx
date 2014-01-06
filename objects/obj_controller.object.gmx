@@ -42,6 +42,45 @@ ghost_points = 200;
         </arguments>
       </action>
     </event>
+    <event eventtype="2" enumb="3">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Restore after Eat Frighten Pause
+
+is_paused = false;
+event_perform(ev_other, ev_user4);
+
+obj_pacman.visible = true;
+
+for (var i = 0; i &lt; 4; i++)
+    with (instance_find(obj_ghost, i))
+    {
+        if (visible == false)
+        {
+            visible = true;
+            state = "Eyes";
+            ai_state = "Return Home";
+        }
+    }
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
     <event eventtype="2" enumb="2">
       <action>
         <libid>1</libid>
