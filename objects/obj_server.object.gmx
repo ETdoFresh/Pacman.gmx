@@ -93,7 +93,7 @@ instance_create(0, 0, obj_client);
             <kind>1</kind>
             <string>/// Server Send Data
 
-if ((current_time - last_update) &gt; 500)
+if ((current_time - last_update) &gt; 50)
 {
     last_update = current_time;
 
