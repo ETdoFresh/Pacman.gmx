@@ -26,14 +26,18 @@
           <argument>
             <kind>1</kind>
             <string>/// Initiate Client
-client = network_create_socket(network_socket_tcp);
-var error = network_connect(client, "127.0.0.1", 6515);
 
-if (error != 0)
-{
-    show_message("Error - can not connect to server!!");
-    game_restart();
-}
+ip = "127.0.0.1";
+server_port = 6515;
+client_port = 6516;
+
+client = network_create_socket(network_socket_udp);
+server = network_create_server(network_socket_udp, client_port, 2);
+
+var connect_buffer = buffer_create(256, buffer_grow, 1);
+buffer_write(connect_buffer, buffer_string, "connect");
+var buffer_size = buffer_tell(connect_buffer);
+network_send_udp(client, ip, server_port, connect_buffer, buffer_size);
 
 all_sprites = ds_list_create();
 sprites = 0;
@@ -99,7 +103,7 @@ command[RIGHT] = false;
                     break;                    
             }
             var buffer_size = buffer_tell(command_buffer)
-            network_send_packet(client, command_buffer, buffer_size);
+            network_send_udp(client, ip, server_port, command_buffer, buffer_size);
         }
     }
 }
@@ -127,10 +131,11 @@ command[RIGHT] = false;
             <kind>1</kind>
             <string>/// Client Recieve Data
 var eventid = ds_map_find_value(async_load, "id");
+var buffer = ds_map_find_value(async_load, "buffer");
+var command = string(buffer_read(buffer, buffer_string));
 
-if (client == eventid)
+if (command == "update")
 {
-    var buffer = ds_map_find_value(async_load, "buffer");
     sprites = buffer_read(buffer, buffer_u16);
     ds_list_clear(all_sprites);
     

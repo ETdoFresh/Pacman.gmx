@@ -27,20 +27,26 @@
             <kind>1</kind>
             <string>/// Initiate Server
 
-tick = 0;
+ip = "127.0.0.1";
+server_port = 6515;
+client_port = 6516;
+max_clients = 32;
 
-var port = 6515;
-var max_clients = 32;
-server = network_create_server(network_socket_tcp, port, max_clients);
+server = network_create_server(network_socket_udp, server_port, max_clients);
+client = network_create_socket(network_socket_udp);
+
 if (server &lt; 0)
 {
     show_message("Cannot create server");
     game_restart();
 }
+
 last_update = current_time;
 
 socket_list = ds_list_create();
 client_list = ds_map_create();
+ip_list = ds_map_create();
+port_list = ds_map_create();
 player_buffer = buffer_create(256, buffer_grow, 1);
 
 alarm[0] = 30;
@@ -103,6 +109,7 @@ if ((current_time - last_update) &gt; 50)
         var player_total = instance_number(obj_player);
         
         buffer_seek(player_buffer, buffer_seek_start, 1);
+        buffer_write(player_buffer, buffer_string, "update");
         buffer_write(player_buffer, buffer_u16, player_total);
         
         with (obj_player)
@@ -117,7 +124,9 @@ if ((current_time - last_update) &gt; 50)
         for (i = 0; i &lt; socket_count; i++)
         {
             var socket = ds_list_find_value(socket_list, i);
-            network_send_packet(socket, player_buffer, buffer_size);
+            var ip = ds_map_find_value(ip_list, socket);
+            var port = 6516;
+            network_send_udp(client, ip, port, player_buffer, buffer_size);
         }
     }
 }
@@ -145,60 +154,48 @@ if ((current_time - last_update) &gt; 50)
             <kind>1</kind>
             <string>/// Server Receive Data
 
-var eventid = ds_map_find_value(async_load, "id");
+var buffer = ds_map_find_value(async_load, "buffer");
+var socket = ds_map_find_value(async_load, "id");
+var ip = ds_map_find_value(async_load, "ip");
+var port = ds_map_find_value(async_load, "port");
 
-if (server == eventid)
-{
-    var is_connect = ds_map_find_value(async_load, "type");
-    var socket = ds_map_find_value(async_load, "socket");
-    var ip = ds_map_find_value(async_load, "ip");
+var command = buffer_read(buffer, buffer_string);
+
+if (command == "connect")
+{        
+    var instance = instance_create(100, 125, obj_player);
+    instance.image_blend = c_yellow;
     
-    if (is_connect == network_type_connect)
-    {
-        ds_list_add(socket_list, socket);        
-        
-        var instance = instance_create(100, 125, obj_player);
-        instance.image_blend = c_yellow;
-        
-        ds_map_add(client_list, socket, instance);
-    }
-    else
-    {
-        var instance = ds_map_find_value(client_list, socket);
-        ds_map_delete(client_list, socket);
-        with (instance) instance_destroy();
-
-        var index = ds_list_find_index(socket_list, socket);
-        ds_list_delete(socket_list, index);
-    }
+    ds_list_add(socket_list, socket);            
+    ds_map_add(client_list, socket, instance);
+    ds_map_add(ip_list, socket, ip);
+    ds_map_add(port_list, socket, port);
 }
-else
+else if (command == "disconnect")
 {
-    var buffer = ds_map_find_value(async_load, "buffer");
-    var command = buffer_read(buffer, buffer_string);
-    var socket = ds_map_find_value(async_load, "id");
     var instance = ds_map_find_value(client_list, socket);
+    ds_map_delete(client_list, socket);
+    ds_map_delete(ip_list, socket);
+    ds_map_delete(port_list, socket);
+    with (instance) instance_destroy();
+
+    var index = ds_list_find_index(socket_list, socket);
+    ds_list_delete(socket_list, index);
+}
+else if (command == "input")
+{
+    var instance = ds_map_find_value(client_list, socket);
+    var tick = buffer_read(buffer, buffer_s16);
+    var key = buffer_read(buffer, buffer_s16);
     
-    if (command == "input")
-    {
-        var tick = buffer_read(buffer, buffer_s16);
-        var key = buffer_read(buffer, buffer_s16);
-        
-        if (key == vk_left)
-            instance.x -= 3;
-        else if (key == vk_right)
-            instance.x += 3;
-        else if (key == vk_up)
-            instance.y -= 3;
-        else if (key == vk_down)
-            instance.y += 3;
-    }
-    else if (command == "name")
-    {
-    }
-    else if (command == "ping")
-    {
-    }
+    if (key == vk_left)
+        instance.x -= 3;
+    else if (key == vk_right)
+        instance.x += 3;
+    else if (key == vk_up)
+        instance.y -= 3;
+    else if (key == vk_down)
+        instance.y += 3;
 }
 </string>
           </argument>
@@ -222,7 +219,9 @@ else
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>draw_set_halign(fa_right);
+            <string>/// Draw Players at bottom right of screen
+
+draw_set_halign(fa_right);
 draw_set_valign(fa_bottom);
 draw_set_color(c_black);
 if (ds_list_size(socket_list) &gt; 0)
@@ -231,6 +230,29 @@ if (ds_list_size(socket_list) &gt; 0)
     str += string(instance_number(obj_player));
     draw_text(room_width, room_height, str);
 }
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="9" enumb="27">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>game_end();
 </string>
           </argument>
         </arguments>
