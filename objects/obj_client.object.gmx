@@ -54,6 +54,10 @@ command[UP] = false;
 command[DOWN] = false;
 command[LEFT] = false;
 command[RIGHT] = false;
+
+client_interpolation = 100; // ms
+packet_history = ds_queue_create();
+last_update = 0;
 </string>
           </argument>
         </arguments>
@@ -76,7 +80,10 @@ command[RIGHT] = false;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>if ((current_time - last_command_update) &gt; 30)
+            <string>/// Send keyboard commands every step
+/// (if anything being pressed)
+
+if ((current_time - last_command_update) &gt; 30)
 {
     last_command_update = current_time;
     
@@ -111,6 +118,63 @@ command[RIGHT] = false;
           </argument>
         </arguments>
       </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>if (ds_queue_size(packet_history) &gt; 0)
+{
+    var render_time = current_time - client_interpolation;
+
+    var head = ds_queue_head(packet_history);
+    var head_time = ds_list_find_value(head, 0);
+    
+    while (render_time &gt; head_time)
+    {
+        all_sprites = ds_queue_dequeue(packet_history);
+        
+        if (ds_queue_size(packet_history) == 0)
+            break;
+        
+        head = ds_queue_head(packet_history);
+        head_time = ds_list_find_value(head, 0);
+    }
+    
+    if (ds_queue_size(packet_history) &gt; 0)
+    {
+        var initial_time = ds_list_find_value(all_sprites, 0);
+        var time_diff_1 = render_time - initial_time;
+        var time_diff_2 = head_time - initial_time;
+        var diff_ratio = time_diff_1 / time_diff_2;
+        
+        ds_list_replace(all_sprites, 0, render_time);
+        
+        for (var i = 1; i &lt; ds_list_size(all_sprites); i++)
+        {
+            var _x1, _x2;
+            _x1 = ds_list_find_value(all_sprites, i);
+            _x2 = ds_list_find_value(head, i);
+            _x1 += (_x2 - _x1) * diff_ratio;
+            ds_list_replace(all_sprites, i, _x1);
+        }
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
     </event>
     <event eventtype="7" enumb="68">
       <action>
@@ -137,14 +201,18 @@ var command = string(buffer_read(buffer, buffer_string));
 if (command == "update")
 {
     sprites = buffer_read(buffer, buffer_u16);
-    ds_list_clear(all_sprites);
+    
+    current_sprites = ds_list_create();
+    ds_list_add(current_sprites, current_time);
     
     for (var i = 0; i &lt; sprites; i++)
     {
-        ds_list_add(all_sprites, buffer_read(buffer, buffer_u16)); // x
-        ds_list_add(all_sprites, buffer_read(buffer, buffer_u16)); // y
-        ds_list_add(all_sprites, buffer_read(buffer, buffer_u16)); // image_blend
+        ds_list_add(current_sprites, buffer_read(buffer, buffer_u16)); // x
+        ds_list_add(current_sprites, buffer_read(buffer, buffer_u16)); // y
+        ds_list_add(current_sprites, buffer_read(buffer, buffer_u16)); // image_blend
     }
+    
+    ds_queue_enqueue(packet_history, current_sprites);    
 }
 </string>
           </argument>
@@ -170,7 +238,7 @@ if (command == "update")
             <kind>1</kind>
             <string>/// Draw all sprites
 
-var index = 0;
+var index = 1;
 for (var i = 0; i &lt; sprites; i++)
 {
     var _x, _y, _blend;
