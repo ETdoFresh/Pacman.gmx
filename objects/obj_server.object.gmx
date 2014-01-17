@@ -4,7 +4,7 @@
   <solid>0</solid>
   <visible>-1</visible>
   <depth>0</depth>
-  <persistent>0</persistent>
+  <persistent>-1</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
@@ -48,33 +48,6 @@ client_list = ds_map_create();
 ip_list = ds_map_create();
 port_list = ds_map_create();
 player_buffer = buffer_create(256, buffer_grow, 1);
-
-alarm[0] = 30;
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="2" enumb="0">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Create Client
-
-instance_create(0, 0, obj_client);
 </string>
           </argument>
         </arguments>
@@ -108,12 +81,16 @@ if ((current_time - last_update) &gt; 50)
     {    
         var player_total = instance_number(obj_player);
         
-        buffer_seek(player_buffer, buffer_seek_start, 1);
+        var offset = 0;
+        if (instance_exists(obj_client)) offset = 1;
+        
+        buffer_seek(player_buffer, buffer_seek_start, offset);
         buffer_write(player_buffer, buffer_string, "update");
         buffer_write(player_buffer, buffer_u16, player_total);
         
         with (obj_player)
         {
+            buffer_write(other.player_buffer, buffer_u32, last_update);
             buffer_write(other.player_buffer, buffer_u16, x);
             buffer_write(other.player_buffer, buffer_u16, y);
             buffer_write(other.player_buffer, buffer_u16, image_blend);
@@ -164,7 +141,7 @@ var command = buffer_read(buffer, buffer_string);
 if (command == "connect")
 {        
     var instance = instance_create(100, 125, obj_player);
-    instance.image_blend = c_yellow;
+    instance.image_blend = make_color_rgb(random(255), random (255), random(255));
     
     ds_list_add(socket_list, socket);            
     ds_map_add(client_list, socket, instance);
@@ -185,17 +162,32 @@ else if (command == "disconnect")
 else if (command == "input")
 {
     var instance = ds_map_find_value(client_list, socket);
-    var tick = buffer_read(buffer, buffer_s16);
-    var key = buffer_read(buffer, buffer_s16);
+    instance.last_update = buffer_read(buffer, buffer_u32);
+    var number_of_keys = buffer_read(buffer, buffer_u8);
     
-    if (key == vk_left)
-        instance.x -= 3;
-    else if (key == vk_right)
-        instance.x += 3;
-    else if (key == vk_up)
-        instance.y -= 3;
-    else if (key == vk_down)
-        instance.y += 3;
+    for (var i = 0; i &lt; number_of_keys; i++)
+    {
+        var key = buffer_read(buffer, buffer_s16);
+        
+        if (key == vk_left)
+            instance.x -= 3;
+        else if (key == vk_right)
+            instance.x += 3;
+        else if (key == vk_up)
+            instance.y -= 3;
+        else if (key == vk_down)
+            instance.y += 3;
+            
+        if (instance.x &lt; 0)
+            instance.x = 0;
+        else if (instance.x &gt; room_width-32)
+            instance.x = room_width-32;
+            
+        if (instance.y &lt; 0)
+            instance.y = 0;
+        else if (instance.y &gt; room_height-32)
+            instance.y = room_height-32;
+    }
 }
 </string>
           </argument>
@@ -224,12 +216,14 @@ else if (command == "input")
 draw_set_halign(fa_right);
 draw_set_valign(fa_bottom);
 draw_set_color(c_black);
-if (ds_list_size(socket_list) &gt; 0)
-{
-    str = "Players: ";
-    str += string(instance_number(obj_player));
-    draw_text(room_width, room_height, str);
-}
+
+str = "Players: ";
+str += string(instance_number(obj_player));
+draw_text(room_width, room_height, str);
+
+draw_set_halign(fa_left);
+str = "Server Created!";
+draw_text(0, room_height, str);
 </string>
           </argument>
         </arguments>
