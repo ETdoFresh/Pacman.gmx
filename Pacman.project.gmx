@@ -7,28 +7,43 @@
   <sounds name="sound"/>
   <sprites name="sprites">
     <sprite>sprites\spr_player</sprite>
+    <sprite>sprites\spr_button_dedicated_server</sprite>
     <sprite>sprites\spr_button_create_server</sprite>
     <sprite>sprites\spr_button_join_server</sprite>
     <sprite>sprites\spr_textbox</sprite>
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
+  <scripts name="scripts">
+    <script>scripts\scr_log.gml</script>
+  </scripts>
+  <fonts name="fonts">
+    <font>fonts\fnt_log</font>
+    <font>fonts\fnt_normal</font>
+  </fonts>
   <objects name="objects">
     <objects name="Menu">
-      <object>objects\obj_join</object>
-      <object>objects\obj_create</object>
-      <object>objects\obj_textbox</object>
+      <object>objects\obj_button</object>
+      <object>objects\obj_button_dedicated</object>
+      <object>objects\obj_button_server</object>
+      <object>objects\obj_button_client</object>
+      <object>objects\obj_textbox_ip</object>
     </objects>
+    <object>objects\obj_log_panel</object>
     <object>objects\obj_server</object>
     <object>objects\obj_client</object>
     <object>objects\obj_player</object>
-    <object>objects\obj_popup_text</object>
+    <object>objects\obj_controller</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_menu</room>
-    <room>rooms\rm_server</room>
-    <room>rooms\rm_client</room>
+    <room>rooms\rm_game</room>
   </rooms>
+  <constants number="3">
+    <constant name="CMD_KEYBOARD">1</constant>
+    <constant name="CMD_UPDATE">2</constant>
+    <constant name="PORT">6515</constant>
+  </constants>
   <help>
     <rtf>help.rtf</rtf>
   </help>

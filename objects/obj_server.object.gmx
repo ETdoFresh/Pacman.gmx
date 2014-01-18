@@ -4,7 +4,7 @@
   <solid>0</solid>
   <visible>-1</visible>
   <depth>0</depth>
-  <persistent>0</persistent>
+  <persistent>-1</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
@@ -25,19 +25,49 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Initiate Server
+            <string>/// Initialize Server
 
-server_port = 6515;
+scr_log("Creating Server...");
+
 max_clients = 32;
-server = network_create_server(network_socket_tcp, server_port, max_clients);
+
+server = network_create_server(network_socket_tcp, PORT, max_clients);
 if (server &lt; 0)
-    show_message("Cannot create server");
+{
+    scr_log("Error creating server");
+    game_restart();
+}
+else
+{
+    scr_log("Server Created");
+}
 
 socket_list = ds_list_create();
 client_list = ds_map_create();
-cmd_id_list = ds_map_create();
-
 player_buffer = buffer_create(256, buffer_grow, 1);
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="1" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>network_destroy(server);
 </string>
           </argument>
         </arguments>
@@ -60,7 +90,7 @@ player_buffer = buffer_create(256, buffer_grow, 1);
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Server Send Data
+            <string>/// Server Send Packets
 
 var socket_count = ds_list_size(socket_list);
 if (socket_count &gt; 0)
@@ -72,19 +102,17 @@ if (socket_count &gt; 0)
         var socket = ds_list_find_value(socket_list, i);
         var instance = ds_map_find_value(client_list, socket);
         var player_number = i;
-        var last_cmd_id = ds_map_find_value(cmd_id_list, socket);
         
-        buffer_seek(player_buffer, buffer_seek_start, 0);
-        buffer_write(player_buffer, buffer_string, "update");
+        buffer_seek(player_buffer, buffer_seek_start, 1);
+        buffer_write(player_buffer, buffer_u8, CMD_UPDATE);
         buffer_write(player_buffer, buffer_u8, player_number);
         buffer_write(player_buffer, buffer_u8, player_total);
-        buffer_write(player_buffer, buffer_u32, last_cmd_id);
         
         with (obj_player)
         {
             buffer_write(other.player_buffer, buffer_u16, x);
             buffer_write(other.player_buffer, buffer_u16, y);
-            buffer_write(other.player_buffer, buffer_u16, image_blend);
+            buffer_write(other.player_buffer, buffer_u32, image_blend);
         }
         
         var buffer_size = buffer_tell(player_buffer);
@@ -116,43 +144,45 @@ if (socket_count &gt; 0)
             <kind>1</kind>
             <string>/// Server Receive Data
 
-var buffer = ds_map_find_value(async_load, "buffer");
 var type = ds_map_find_value(async_load, "type");
-var socket = ds_map_find_value(async_load, "id");
-var ip = ds_map_find_value(async_load, "ip");
-var port = ds_map_find_value(async_load, "port");
+var eventid = ds_map_find_value(async_load, "id");
 
-if (type == network_type_connect)
+//scr_log("Server Recieved - " + string(eventid) + " " + string(type));
+
+if (server == eventid &amp;&amp; type == network_type_connect)
 {
-    socket = ds_map_find_value(async_load, "socket");
-    var instance = instance_create(100, 125, obj_player);
-    instance.image_blend = make_color_rgb(random(255), random (255), random(255));
-    ds_list_add(socket_list, socket);            
+    var socket = ds_map_find_value(async_load, "socket");
+    var instance = instance_create(50, 50, obj_player);
+    instance.image_blend = make_color_rgb(random(255), random(255), random(255));
+    ds_list_add(socket_list, socket);
     ds_map_add(client_list, socket, instance);
-    ds_map_add(cmd_id_list, socket, 0);
+
+    var ip = ds_map_find_value(async_load, "ip");    
+    scr_log("(" + string(socket) + ") " + string (ip) + " Connected");
 }
-else if (type == network_type_disconnect)
+else if (server == eventid &amp;&amp; type == network_type_disconnect)
 {
-    socket = ds_map_find_value(async_load, "socket");
-    var instance = ds_map_find_value(client_list, socket);    
+    var socket = ds_map_find_value(async_load, "socket");
+    var instance = ds_map_find_value(client_list, socket);
     ds_map_delete(client_list, socket);
-    ds_map_delete(cmd_id_list, socket);
-    with (instance) instance_destroy();
     var index = ds_list_find_index(socket_list, socket);
     ds_list_delete(socket_list, index);
+    with (instance) instance_destroy();
+    
+    var ip = ds_map_find_value(async_load, "ip");    
+    scr_log("(" + string(socket) + ") " + string (ip) + " Disconnected");
 }
 else if (type == network_type_data)
 {
-    var command = buffer_read(buffer, buffer_string);
-
-    if (command == "input")
+    var socket = eventid;
+    var buffer = ds_map_find_value(async_load, "buffer");
+    var command = buffer_read(buffer, buffer_u8);
+    
+    if (command == CMD_KEYBOARD)
     {
         var instance = ds_map_find_value(client_list, socket);
-        var cmd_id = buffer_read(buffer, buffer_u32);
-        ds_map_replace(cmd_id_list, socket, cmd_id);
-        
-        var number_of_keys = buffer_read(buffer, buffer_u8);
-        for (var i = 0; i &lt; number_of_keys; i++)
+        var key_count = buffer_read(buffer, buffer_u8);
+        for (var i = 0; i &lt; key_count; i++)
         {
             var key = buffer_read(buffer, buffer_s16);
             
@@ -167,8 +197,8 @@ else if (type == network_type_data)
                 
             if (instance.x &lt; 0)
                 instance.x = 0;
-            else if (instance.x &gt; room_width-32)
-                instance.x = room_width-32;
+            else if (instance.x &gt; obj_log_panel.x - 32)
+                instance.x = obj_log_panel.x - 32;
                 
             if (instance.y &lt; 0)
                 instance.y = 0;
@@ -199,42 +229,12 @@ else if (type == network_type_data)
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Draw Players at bottom right of screen
+            <string>/// Label Server Window
 
-draw_set_halign(fa_right);
-draw_set_valign(fa_bottom);
-draw_set_color(c_black);
-
-str = "Players: ";
-str += string(instance_number(obj_player));
-draw_text(room_width, room_height, str);
-
+draw_set_color(c_red);
 draw_set_halign(fa_left);
-str = "Server Created!";
-draw_text(0, room_height, str);
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="9" enumb="27">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>game_end();
+draw_set_valign(fa_bottom);
+draw_text(0, room_height, "SERVER");
 </string>
           </argument>
         </arguments>

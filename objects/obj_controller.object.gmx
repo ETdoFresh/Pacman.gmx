@@ -4,7 +4,7 @@
   <solid>0</solid>
   <visible>-1</visible>
   <depth>0</depth>
-  <persistent>0</persistent>
+  <persistent>-1</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
@@ -25,13 +25,14 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>text = "";
+            <string>if (!instance_exists(obj_log_panel))
+    instance_create(448, 0, obj_log_panel);
 </string>
           </argument>
         </arguments>
       </action>
     </event>
-    <event eventtype="3" enumb="0">
+    <event eventtype="9" enumb="35">
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -48,19 +49,15 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>image_alpha -= 1 / 60;
+            <string>scr_log ("End pressed, nothing destroyed");
 
-if (image_alpha &lt;= 0)
-{
-    instance_destroy();
-}
-
+room_goto(rm_menu);
 </string>
           </argument>
         </arguments>
       </action>
     </event>
-    <event eventtype="8" enumb="0">
+    <event eventtype="9" enumb="27">
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -77,12 +74,13 @@ if (image_alpha &lt;= 0)
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>draw_set_color(c_black);
-draw_set_alpha(image_alpha);
-draw_set_halign(fa_center);
-draw_set_valign(fa_middle);
-draw_text(x, y, text);
-draw_set_alpha(1);
+            <string>scr_log ("Escape pressed, all objects destroyed");
+
+with (obj_server) instance_destroy();
+with (obj_client) instance_destroy();
+with (obj_player) instance_destroy();
+
+room_goto(rm_menu);
 </string>
           </argument>
         </arguments>
