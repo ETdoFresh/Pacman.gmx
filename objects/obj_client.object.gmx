@@ -4,7 +4,7 @@
   <solid>0</solid>
   <visible>-1</visible>
   <depth>0</depth>
-  <persistent>-1</persistent>
+  <persistent>0</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
@@ -29,13 +29,13 @@
 
 ip = "127.0.0.1";
 server_port = 6515;
-client_port = 6516;
+event_perform(ev_other, ev_user0);
 
 all_sprites = ds_list_create();
 sprites = 0;
 
 command_buffer = buffer_create(256, buffer_grow, 1);
-last_command_update = current_time;
+cmd_id = 0;
 
 UP = 0;
 DOWN = 1;
@@ -48,7 +48,7 @@ command[LEFT] = false;
 command[RIGHT] = false;
 
 predict_history = ds_queue_create();
-
+player_number = 0;
 </string>
           </argument>
         </arguments>
@@ -74,55 +74,53 @@ predict_history = ds_queue_create();
             <string>/// Send keyboard commands every step
 /// (if anything being pressed)
 
-if ((current_time - last_command_update) &gt; 30)
+var number_of_keys = 0;
+if (command[UP]) number_of_keys++;
+if (command[DOWN]) number_of_keys++;
+if (command[LEFT]) number_of_keys++;
+if (command[RIGHT]) number_of_keys++;
+
+if (number_of_keys &gt; 0)
 {
-    last_command_update = current_time;
-    
-    var number_of_commands = 0;
-    if (command[UP]) number_of_commands++;
-    if (command[DOWN]) number_of_commands++;
-    if (command[LEFT]) number_of_commands++;
-    if (command[RIGHT]) number_of_commands++;
-    
-    if (number_of_commands &gt; 0)
+    var offset = 3 * (player_number) + 1;
+    cmd_id++;
+
+    buffer_seek(command_buffer, buffer_seek_start, 0);
+    buffer_write(command_buffer, buffer_string, "input");
+    buffer_write(command_buffer, buffer_u32, cmd_id);
+    buffer_write(command_buffer, buffer_u8, number_of_keys);
+    if (command[UP])
     {
-        buffer_seek(command_buffer, buffer_seek_start, 0);
-        buffer_write(command_buffer, buffer_string, "input");
-        buffer_write(command_buffer, buffer_u32, current_time);
-        buffer_write(command_buffer, buffer_u8, number_of_commands);
-        if (command[UP])
-        {
-            buffer_write(command_buffer, buffer_s16, vk_up);
-            var _y = ds_list_find_value(all_sprites, 2) - 3;
-            ds_list_replace(all_sprites, 2, _y);
-        }
-        if (command[DOWN])
-        {
-            buffer_write(command_buffer, buffer_s16, vk_down);
-            var _y = ds_list_find_value(all_sprites, 2) + 3;
-            ds_list_replace(all_sprites, 2, _y);
-        }
-        if (command[LEFT])
-        {
-            buffer_write(command_buffer, buffer_s16, vk_left);
-            var _x = ds_list_find_value(all_sprites, 1) - 3;
-            ds_list_replace(all_sprites, 1, _x);
-        }
-        if (command[RIGHT])
-        {
-            buffer_write(command_buffer, buffer_s16, vk_right);
-            var _x = ds_list_find_value(all_sprites, 1) + 3;
-            ds_list_replace(all_sprites, 1, _x);
-        }
-        
-        var buffer_size = buffer_tell(command_buffer)
-        network_send_udp(client, ip, server_port, command_buffer, buffer_size);
-        
-        ds_list_replace(all_sprites, 0, current_time);
-        var new_prediction = ds_list_create();
-        ds_list_copy(new_prediction, all_sprites);
-        ds_queue_enqueue(predict_history, new_prediction);
+        buffer_write(command_buffer, buffer_s16, vk_up);
+        var _y = ds_list_find_value(all_sprites, offset + 1) - 3;
+        ds_list_replace(all_sprites, offset + 1, _y);
     }
+    if (command[DOWN])
+    {
+        buffer_write(command_buffer, buffer_s16, vk_down);
+        var _y = ds_list_find_value(all_sprites, offset + 1) + 3;
+        ds_list_replace(all_sprites, offset + 1, _y);
+    }
+    if (command[LEFT])
+    {
+        buffer_write(command_buffer, buffer_s16, vk_left);
+        var _x = ds_list_find_value(all_sprites, offset + 0) - 3;
+        ds_list_replace(all_sprites, offset + 0, _x);
+    }
+    if (command[RIGHT])
+    {
+        buffer_write(command_buffer, buffer_s16, vk_right);
+        var _x = ds_list_find_value(all_sprites, offset + 0) + 3;
+        ds_list_replace(all_sprites, offset + 0, _x);
+    }
+    
+    var buffer_size = buffer_tell(command_buffer)
+    network_send_packet(client, command_buffer, buffer_size);
+    
+    ds_list_replace(all_sprites, 0, cmd_id);
+    var new_prediction = ds_list_create();
+    ds_list_copy(new_prediction, all_sprites);
+    ds_queue_enqueue(predict_history, new_prediction);
 }
 </string>
           </argument>
@@ -153,37 +151,38 @@ var command = string(buffer_read(buffer, buffer_string));
 
 if (command == "update")
 {
-    sprites = buffer_read(buffer, buffer_u16);
+    player_number = buffer_read(buffer, buffer_u8);
+    sprites = buffer_read(buffer, buffer_u8);
+    
+    var last_cmd_id = buffer_read(buffer, buffer_u32);
     
     received_list = ds_list_create();
-    ds_list_clear(received_list);
+    ds_list_add(received_list, last_cmd_id);
     
-    var received_time = -1;
     for (var i = 0; i &lt; sprites; i++)
     {
-        received_time = buffer_read(buffer, buffer_u32);
-        ds_list_add(received_list, received_time);
         ds_list_add(received_list, buffer_read(buffer, buffer_u16)); // x
         ds_list_add(received_list, buffer_read(buffer, buffer_u16)); // y
         ds_list_add(received_list, buffer_read(buffer, buffer_u16)); // image_blend
     }
     
     // Compare recieved with predicted
-    if (ds_queue_size(predict_history) &gt; 0 &amp;&amp; received_time &gt;= 0)
+    if (ds_queue_size(predict_history) &gt; 0 &amp;&amp; last_cmd_id &gt; 0)
     {
-        // Clear out queue until received time (or completely)
+        // Clear out queue until reach cmd_id (or completely)
         var list = ds_queue_head(predict_history);
-        while(ds_queue_size(predict_history) &gt; 0 &amp;&amp; ds_list_find_value(list, 0) &lt; received_time)
+        while(ds_queue_size(predict_history) &gt; 0 &amp;&amp; ds_list_find_value(list, 0) &lt; last_cmd_id)
             list = ds_queue_dequeue(predict_history);
         
-        if (ds_list_find_value(list, 0) == received_time)
+        if (ds_list_find_value(list, 0) == last_cmd_id)
         {
-            for (var i = 0; i &lt; ds_list_size(list); i++)
+            var offset2 = 3 * (player_number) + 1;
+            for (var i = 0; i &lt; ds_list_size(received_list); i++)
             {
                 received = ds_list_find_value(received_list, i);
                 predicted = ds_list_find_value(list, i);
                 
-               if (received != predicted)
+               if (received != predicted &amp;&amp; offset2 &lt;= i &amp;&amp; i &lt; offset2 + 3)
                {
                     with (instance_create(100,100,obj_popup_text))
                         text = "Prediction Error";
@@ -199,10 +198,14 @@ if (command == "update")
                     
                     ds_list_copy(all_sprites, ds_queue_tail(predict_history));
                 }
+                else
+                {
+                    ds_list_replace(all_sprites, i, received);
+                }
             }
         }
     }
-    else if (received_time &gt;= 0)
+    else if (last_cmd_id &gt;= 0)
     {
         ds_list_copy(all_sprites, received_list);
     }
@@ -231,13 +234,8 @@ if (command == "update")
             <kind>1</kind>
             <string>/// Connect Event
 
-client = network_create_socket(network_socket_udp);
-server = network_create_server(network_socket_udp, client_port, 2);
-
-var connect_buffer = buffer_create(256, buffer_grow, 1);
-buffer_write(connect_buffer, buffer_string, "connect");
-var buffer_size = buffer_tell(connect_buffer);
-network_send_udp(client, ip, server_port, connect_buffer, buffer_size);
+client = network_create_socket(network_socket_tcp);
+network_connect(client, ip, server_port);
 </string>
           </argument>
         </arguments>
@@ -262,11 +260,10 @@ network_send_udp(client, ip, server_port, connect_buffer, buffer_size);
             <kind>1</kind>
             <string>/// Draw all sprites
 
-var index = 0;
+var index = 1; // offset by 1 because cmd_id is at [0]
 for (var i = 0; i &lt; sprites; i++)
 {
-    var _last_update, _x, _y, _blend;
-    _last_update = ds_list_find_value(all_sprites, index++);
+    var _x, _y, _blend;
     _x = ds_list_find_value(all_sprites, index++);
     _y = ds_list_find_value(all_sprites, index++);
     _blend = ds_list_find_value(all_sprites, index++);
@@ -276,10 +273,20 @@ for (var i = 0; i &lt; sprites; i++)
     draw_set_color(c_white);
     draw_set_halign(fa_center);
     draw_set_valign(fa_top);
-    draw_text(_x + 16, _y - 20, "Player");
+    draw_text(_x + 16, _y - 20, "Player " + string(i));
     
     draw_text(_x + 16, _y + 32, string(_x) + ", " + string(_y));
 }
+draw_set_color(c_white);
+draw_set_halign(fa_left);
+draw_set_valign(fa_top);
+draw_text(0, 0, "Player Num: " + string(player_number)
+ + "#Players: " + string(sprites)
+ + "#allsprite[0]: " + string(ds_list_find_value(all_sprites, 0))
+ + "#allsprite[1]: " + string(ds_list_find_value(all_sprites, 1))
+ + "#allsprite[2]: " + string(ds_list_find_value(all_sprites, 2))
+ + "#allsprite[3]: " + string(ds_list_find_value(all_sprites, 3))
+ + "#CMD_ID: " + string(cmd_id));
 </string>
           </argument>
         </arguments>

@@ -14,17 +14,20 @@
   <backgrounds name="background"/>
   <paths name="paths"/>
   <objects name="objects">
+    <objects name="Menu">
+      <object>objects\obj_join</object>
+      <object>objects\obj_create</object>
+      <object>objects\obj_textbox</object>
+    </objects>
     <object>objects\obj_server</object>
     <object>objects\obj_client</object>
     <object>objects\obj_player</object>
     <object>objects\obj_popup_text</object>
-    <object>objects\obj_join</object>
-    <object>objects\obj_create</object>
-    <object>objects\obj_textbox</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_menu</room>
-    <room>rooms\rm_main</room>
+    <room>rooms\rm_server</room>
+    <room>rooms\rm_client</room>
   </rooms>
   <help>
     <rtf>help.rtf</rtf>

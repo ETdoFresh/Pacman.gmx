@@ -4,7 +4,7 @@
   <solid>0</solid>
   <visible>-1</visible>
   <depth>0</depth>
-  <persistent>-1</persistent>
+  <persistent>0</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
@@ -27,26 +27,16 @@
             <kind>1</kind>
             <string>/// Initiate Server
 
-ip = "127.0.0.1";
 server_port = 6515;
-client_port = 6516;
 max_clients = 32;
-
-server = network_create_server(network_socket_udp, server_port, max_clients);
-client = network_create_socket(network_socket_udp);
-
+server = network_create_server(network_socket_tcp, server_port, max_clients);
 if (server &lt; 0)
-{
     show_message("Cannot create server");
-    game_restart();
-}
-
-last_update = current_time;
 
 socket_list = ds_list_create();
 client_list = ds_map_create();
-ip_list = ds_map_create();
-port_list = ds_map_create();
+cmd_id_list = ds_map_create();
+
 player_buffer = buffer_create(256, buffer_grow, 1);
 </string>
           </argument>
@@ -72,39 +62,34 @@ player_buffer = buffer_create(256, buffer_grow, 1);
             <kind>1</kind>
             <string>/// Server Send Data
 
-if ((current_time - last_update) &gt; 50)
-{
-    last_update = current_time;
+var socket_count = ds_list_size(socket_list);
+if (socket_count &gt; 0)
+{    
+    var player_total = instance_number(obj_player);
 
-    var socket_count = ds_list_size(socket_list);
-    if (socket_count &gt; 0)
+    for (i = 0; i &lt; socket_count; i++)
     {    
-        var player_total = instance_number(obj_player);
+        var socket = ds_list_find_value(socket_list, i);
+        var instance = ds_map_find_value(client_list, socket);
+        var player_number = i;
+        var last_cmd_id = ds_map_find_value(cmd_id_list, socket);
         
-        var offset = 0;
-        if (instance_exists(obj_client)) offset = 1;
-        
-        buffer_seek(player_buffer, buffer_seek_start, offset);
+        buffer_seek(player_buffer, buffer_seek_start, 0);
         buffer_write(player_buffer, buffer_string, "update");
-        buffer_write(player_buffer, buffer_u16, player_total);
+        buffer_write(player_buffer, buffer_u8, player_number);
+        buffer_write(player_buffer, buffer_u8, player_total);
+        buffer_write(player_buffer, buffer_u32, last_cmd_id);
         
         with (obj_player)
         {
-            buffer_write(other.player_buffer, buffer_u32, last_update);
             buffer_write(other.player_buffer, buffer_u16, x);
             buffer_write(other.player_buffer, buffer_u16, y);
             buffer_write(other.player_buffer, buffer_u16, image_blend);
         }
         
         var buffer_size = buffer_tell(player_buffer);
-        
-        for (i = 0; i &lt; socket_count; i++)
-        {
-            var socket = ds_list_find_value(socket_list, i);
-            var ip = ds_map_find_value(ip_list, socket);
-            var port = 6516;
-            network_send_udp(client, ip, port, player_buffer, buffer_size);
-        }
+    
+        network_send_packet(socket, player_buffer, buffer_size);
     }
 }
 </string>
@@ -132,61 +117,64 @@ if ((current_time - last_update) &gt; 50)
             <string>/// Server Receive Data
 
 var buffer = ds_map_find_value(async_load, "buffer");
+var type = ds_map_find_value(async_load, "type");
 var socket = ds_map_find_value(async_load, "id");
 var ip = ds_map_find_value(async_load, "ip");
 var port = ds_map_find_value(async_load, "port");
 
-var command = buffer_read(buffer, buffer_string);
-
-if (command == "connect")
-{        
+if (type == network_type_connect)
+{
+    socket = ds_map_find_value(async_load, "socket");
     var instance = instance_create(100, 125, obj_player);
     instance.image_blend = make_color_rgb(random(255), random (255), random(255));
-    
     ds_list_add(socket_list, socket);            
     ds_map_add(client_list, socket, instance);
-    ds_map_add(ip_list, socket, ip);
-    ds_map_add(port_list, socket, port);
+    ds_map_add(cmd_id_list, socket, 0);
 }
-else if (command == "disconnect")
+else if (type == network_type_disconnect)
 {
-    var instance = ds_map_find_value(client_list, socket);
+    socket = ds_map_find_value(async_load, "socket");
+    var instance = ds_map_find_value(client_list, socket);    
     ds_map_delete(client_list, socket);
-    ds_map_delete(ip_list, socket);
-    ds_map_delete(port_list, socket);
+    ds_map_delete(cmd_id_list, socket);
     with (instance) instance_destroy();
-
     var index = ds_list_find_index(socket_list, socket);
     ds_list_delete(socket_list, index);
 }
-else if (command == "input")
+else if (type == network_type_data)
 {
-    var instance = ds_map_find_value(client_list, socket);
-    instance.last_update = buffer_read(buffer, buffer_u32);
-    var number_of_keys = buffer_read(buffer, buffer_u8);
-    
-    for (var i = 0; i &lt; number_of_keys; i++)
+    var command = buffer_read(buffer, buffer_string);
+
+    if (command == "input")
     {
-        var key = buffer_read(buffer, buffer_s16);
+        var instance = ds_map_find_value(client_list, socket);
+        var cmd_id = buffer_read(buffer, buffer_u32);
+        ds_map_replace(cmd_id_list, socket, cmd_id);
         
-        if (key == vk_left)
-            instance.x -= 3;
-        else if (key == vk_right)
-            instance.x += 3;
-        else if (key == vk_up)
-            instance.y -= 3;
-        else if (key == vk_down)
-            instance.y += 3;
+        var number_of_keys = buffer_read(buffer, buffer_u8);
+        for (var i = 0; i &lt; number_of_keys; i++)
+        {
+            var key = buffer_read(buffer, buffer_s16);
             
-        if (instance.x &lt; 0)
-            instance.x = 0;
-        else if (instance.x &gt; room_width-32)
-            instance.x = room_width-32;
-            
-        if (instance.y &lt; 0)
-            instance.y = 0;
-        else if (instance.y &gt; room_height-32)
-            instance.y = room_height-32;
+            if (key == vk_left)
+                instance.x -= 3;
+            else if (key == vk_right)
+                instance.x += 3;
+            else if (key == vk_up)
+                instance.y -= 3;
+            else if (key == vk_down)
+                instance.y += 3;
+                
+            if (instance.x &lt; 0)
+                instance.x = 0;
+            else if (instance.x &gt; room_width-32)
+                instance.x = room_width-32;
+                
+            if (instance.y &lt; 0)
+                instance.y = 0;
+            else if (instance.y &gt; room_height-32)
+                instance.y = room_height-32;
+        }
     }
 }
 </string>

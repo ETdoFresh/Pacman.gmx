@@ -73,13 +73,7 @@ image_index = 0;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>with (instance_create(0, 0, obj_client))
-{
-    ip = obj_textbox.text; // Set IP
-    event_perform(ev_other, ev_user0); // Connect
-}
-
-room_goto(rm_main);
+            <string>room_goto(rm_client);
 </string>
           </argument>
         </arguments>

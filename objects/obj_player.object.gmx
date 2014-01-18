@@ -27,8 +27,6 @@
             <kind>1</kind>
             <string>/// Ghost Image of Player on Server
 image_alpha = 0.25;
-
-last_update = 0;
 </string>
           </argument>
         </arguments>
