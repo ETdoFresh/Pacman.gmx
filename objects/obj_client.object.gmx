@@ -41,6 +41,10 @@ is_input_predicted = false;
 cmd_id = 0;
 predict_history = ds_queue_create();
 
+is_entity_interpolation = false;
+client_interpolation = 100;
+packet_history = ds_queue_create();
+
 scr_log("Client Created")
 </string>
           </argument>
@@ -117,6 +121,68 @@ if (key_count &gt; 0)
         <arguments>
           <argument>
             <kind>1</kind>
+            <string>/// Entity Interpolation
+
+if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
+{
+    var render_time = current_time - client_interpolation;
+
+    var list = ds_queue_head(packet_history);
+    while (ds_queue_size(packet_history) &gt; 0 &amp;&amp; ds_list_find_value(list, 0) &lt; render_time)
+        list = ds_queue_dequeue(packet_history);
+
+    var offset = player * 3 + 1;
+    for (var i = 1; i &lt; ds_list_size(sprites); i++)
+        if (i &lt; offset || offset + 3 &lt;= i)
+            ds_list_replace(sprites, i - 1, ds_list_find_value(list, i));
+
+    var before_time = ds_list_find_value(list, 0);
+    var after_time = ds_list_find_value(ds_queue_head(packet_history), 0);
+
+    if (after_time &gt; before_time)
+    {
+        //scr_log("Interop r: " + string(render_time) + " 1: " + string(before_time) + " 2: " + string(after_time));
+        var t1 = render_time - before_time;
+        var t2 = after_time - before_time;
+        var diff = t1 / t2;
+        
+        for (var i = 1; i &lt; ds_list_size(sprites); i++)
+        {
+            if (offset &gt; i || i &gt;= offset + 3)
+            {
+                var _x1 = ds_list_find_value(list, i);
+                var _x2 = ds_list_find_value(ds_queue_head(packet_history), i);
+               _x1 += (_x2 - _x1) * diff;
+               ds_list_replace(list, i, _x1);
+            }
+        }
+        ds_list_replace(list, 0, render_time);
+        ds_queue_enqueue(packet_history, list);
+        
+        for (var i = 1; i &lt; ds_queue_size(packet_history); i++)
+            ds_queue_enqueue(packet_history, ds_queue_dequeue(packet_history));
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
             <string>/// Input Prediction
 
 if (key_count &gt; 0 &amp;&amp; is_input_predicted)
@@ -152,12 +218,6 @@ if (key_count &gt; 0 &amp;&amp; is_input_predicted)
     ds_list_add(prediction, _x);
     ds_list_add(prediction, _y);
     ds_list_add(prediction, _color);
-       
-    scr_log("Predication Added " + 
-        string(ds_list_find_value(prediction, 0)) + " " +
-        string(ds_list_find_value(prediction, 1)) + "," +
-        string(ds_list_find_value(prediction, 2))
-    );
     
     ds_queue_enqueue(predict_history, prediction);
 }
@@ -227,6 +287,7 @@ if (key_count &gt; 0)
             <string>/// Client Recieve Packet
 
 var eventid = ds_map_find_value(async_load, "id");
+var command = -1;
 
 if (client == eventid)
 {
@@ -275,54 +336,80 @@ if (client == eventid)
         <arguments>
           <argument>
             <kind>1</kind>
+            <string>/// Entity Interpolation
+
+if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == CMD_UPDATE)
+{ 
+    var current_sprites = ds_list_create();
+    ds_list_copy(current_sprites, sprites);
+    ds_list_insert(current_sprites, 0, current_time);
+    ds_queue_enqueue(packet_history, current_sprites); 
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
             <string>/// Input Prediction
 
-if (client == eventid)
-{
-    if (command == CMD_UPDATE)
-    {        
-        // Compare with Prediction
-        if (is_input_predicted &amp;&amp; ds_queue_size(predict_history) &gt; 0 &amp;&amp; last_cmd_id &gt; 0)
+if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UPDATE)
+{        
+    // Compare with Prediction
+    if (ds_queue_size(predict_history) &gt; 0 &amp;&amp; last_cmd_id &gt; 0)
+    {
+        // Clear queue until prediction time (or clear completely)
+        var list = ds_queue_head(predict_history)
+        while (ds_queue_size(predict_history) &gt; 0 &amp;&amp; ds_list_find_value(list, 0) &lt; last_cmd_id)
+            list = ds_queue_dequeue(predict_history);
+        
+        // Run following if we find exact prediction
+        if (ds_list_find_value(list, 0) == last_cmd_id)
         {
-            // Clear queue until prediction time (or clear completely)
-            var list = ds_queue_head(predict_history)
-            while (ds_queue_size(predict_history) &gt; 0 &amp;&amp; ds_list_find_value(list, 0) &lt; last_cmd_id)
-                list = ds_queue_dequeue(predict_history);
-            
-            // Run following if we find exact prediction
-            if (ds_list_find_value(list, 0) == last_cmd_id)
+            var offset = player * 3;
+            for (var i = 0; i &lt; 3; i++)
             {
-                var offset = player * 3;
-                for (var i = 0; i &lt; 3; i++)
+                received = ds_list_find_value(sprites, i + offset);
+                predicted = ds_list_find_value(list, i + 1);
+                
+                if (received != predicted)
                 {
-                    received = ds_list_find_value(sprites, i + offset);
-                    predicted = ds_list_find_value(list, i + 1);
-                    
-                    if (received != predicted)
-                    {
-                        scr_log("Prediction Error " + string(last_cmd_id) + " " + string(received) + " " + string(predicted));
+                    scr_log("Prediction Error " + string(last_cmd_id) + " " + string(received) + " " + string(predicted));
                         
-                        // Adjust error for current and future predictions
-                        if (ds_queue_size(predict_history) &gt; 0)
+                    // Adjust error for current and future predictions
+                    if (ds_queue_size(predict_history) &gt; 0)
+                    {
+                        var delta_value = received - predicted;
+                        for (var j = 0; j &lt; ds_queue_size(predict_history); j++)
                         {
-                            var delta_value = received - predicted;
-                            for (var j = 0; j &lt; ds_queue_size(predict_history); j++)
-                            {
-                                var new_list = ds_queue_dequeue(predict_history);
-                                var new_value = ds_list_find_value(new_list, i + 1) + delta_value;
-                                ds_list_replace(new_list, i + 1, new_value);
-                                ds_queue_enqueue(predict_history, new_list);
-                            }
-                            
-                            var new_list = ds_queue_tail(predict_history);
-                            var new_value = ds_list_find_value(new_list, i + 1);
-                            ds_list_replace(sprites, i + offset, new_value);
+                            var new_list = ds_queue_dequeue(predict_history);
+                            var new_value = ds_list_find_value(new_list, i + 1) + delta_value;
+                            ds_list_replace(new_list, i + 1, new_value);
+                            ds_queue_enqueue(predict_history, new_list);
                         }
+                        
+                        var new_list = ds_queue_tail(predict_history);
+                        var new_value = ds_list_find_value(new_list, i + 1);
+                        ds_list_replace(sprites, i + offset, new_value);
                     }
                 }
             }
         }
-    }       
+    }
 }
 </string>
           </argument>

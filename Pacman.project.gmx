@@ -33,6 +33,7 @@
     <objects name="UI">
       <object>objects\obj_checkbox</object>
       <object>objects\obj_check_predict</object>
+      <object>objects\obj_check_interop</object>
     </objects>
     <object>objects\obj_log_panel</object>
     <object>objects\obj_server</object>
