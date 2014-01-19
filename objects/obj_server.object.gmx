@@ -45,6 +45,7 @@ else
 socket_list = ds_list_create();
 client_list = ds_map_create();
 player_buffer = buffer_create(256, buffer_grow, 1);
+last_update = 0;
 </string>
           </argument>
         </arguments>
@@ -92,8 +93,15 @@ player_buffer = buffer_create(256, buffer_grow, 1);
             <kind>1</kind>
             <string>/// Server Send Packets
 
-// Simulate packet loss 
-if (random(100) &lt; 50) exit;
+// Packet Send Speed (in ms)
+var packet_speed = 45;
+if (current_time - last_update &lt; packet_speed)
+    exit;
+last_update = current_time;
+
+// Simulate random packet loss 
+// if (random(100) &lt; 50) exit;
+
 
 var socket_count = ds_list_size(socket_list);
 if (socket_count &gt; 0)

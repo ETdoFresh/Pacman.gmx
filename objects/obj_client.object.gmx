@@ -42,8 +42,9 @@ cmd_id = 0;
 predict_history = ds_queue_create();
 
 is_entity_interpolation = false;
-client_interpolation = 100;
+client_interpolation = 150;
 packet_history = ds_queue_create();
+past_packet = ds_list_create();
 
 scr_log("Client Created")
 </string>
@@ -127,40 +128,34 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
 {
     var render_time = current_time - client_interpolation;
 
-    var list = ds_queue_head(packet_history);
-    while (ds_queue_size(packet_history) &gt; 0 &amp;&amp; ds_list_find_value(list, 0) &lt; render_time)
-        list = ds_queue_dequeue(packet_history);
+    var head = ds_queue_head(packet_history);
+    while (ds_queue_size(packet_history) &gt; 0 &amp;&amp; ds_list_find_value(head, 0) &lt; render_time)
+    {
+        past_packet = ds_queue_dequeue(packet_history);
+        head = ds_queue_head(packet_history);
+    }
 
-    var offset = player * 3 + 1;
-    for (var i = 1; i &lt; ds_list_size(sprites); i++)
-        if (i &lt; offset || offset + 3 &lt;= i)
-            ds_list_replace(sprites, i - 1, ds_list_find_value(list, i));
+    var past_time = ds_list_find_value(past_packet, 0);
+    var head_time = ds_list_find_value(head, 0);
 
-    var before_time = ds_list_find_value(list, 0);
-    var after_time = ds_list_find_value(ds_queue_head(packet_history), 0);
-
-    if (after_time &gt; before_time)
+    if (past_time &gt; 0 &amp;&amp; head_time - past_time &lt; client_interpolation * 3)
     {
         //scr_log("Interop r: " + string(render_time) + " 1: " + string(before_time) + " 2: " + string(after_time));
-        var t1 = render_time - before_time;
-        var t2 = after_time - before_time;
+        var t1 = render_time - past_time;
+        var t2 = head_time - past_time;
         var diff = t1 / t2;
+        var offset = player * 3 + 1;
         
         for (var i = 1; i &lt; ds_list_size(sprites); i++)
         {
             if (offset &gt; i || i &gt;= offset + 3)
             {
-                var _x1 = ds_list_find_value(list, i);
-                var _x2 = ds_list_find_value(ds_queue_head(packet_history), i);
+                var _x1 = ds_list_find_value(past_packet, i);
+                var _x2 = ds_list_find_value(head, i);
                _x1 += (_x2 - _x1) * diff;
-               ds_list_replace(list, i, _x1);
+               ds_list_replace(sprites, i - 1, _x1);
             }
         }
-        ds_list_replace(list, 0, render_time);
-        ds_queue_enqueue(packet_history, list);
-        
-        for (var i = 1; i &lt; ds_queue_size(packet_history); i++)
-            ds_queue_enqueue(packet_history, ds_queue_dequeue(packet_history));
     }
 }
 </string>
