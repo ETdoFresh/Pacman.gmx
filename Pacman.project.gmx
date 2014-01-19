@@ -11,6 +11,7 @@
     <sprite>sprites\spr_button_create_server</sprite>
     <sprite>sprites\spr_button_join_server</sprite>
     <sprite>sprites\spr_textbox</sprite>
+    <sprite>sprites\spr_checkbox</sprite>
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
@@ -28,6 +29,10 @@
       <object>objects\obj_button_server</object>
       <object>objects\obj_button_client</object>
       <object>objects\obj_textbox_ip</object>
+    </objects>
+    <objects name="UI">
+      <object>objects\obj_checkbox</object>
+      <object>objects\obj_check_predict</object>
     </objects>
     <object>objects\obj_log_panel</object>
     <object>objects\obj_server</object>

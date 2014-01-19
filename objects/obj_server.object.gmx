@@ -92,6 +92,9 @@ player_buffer = buffer_create(256, buffer_grow, 1);
             <kind>1</kind>
             <string>/// Server Send Packets
 
+// Simulate packet loss 
+if (random(100) &lt; 50) exit;
+
 var socket_count = ds_list_size(socket_list);
 if (socket_count &gt; 0)
 {    
@@ -107,6 +110,7 @@ if (socket_count &gt; 0)
         buffer_write(player_buffer, buffer_u8, CMD_UPDATE);
         buffer_write(player_buffer, buffer_u8, player_number);
         buffer_write(player_buffer, buffer_u8, player_total);
+        buffer_write(player_buffer, buffer_u32, instance.last_cmd_id);
         
         with (obj_player)
         {
@@ -181,6 +185,8 @@ else if (type == network_type_data)
     if (command == CMD_KEYBOARD)
     {
         var instance = ds_map_find_value(client_list, socket);
+        instance.last_cmd_id = buffer_read(buffer, buffer_u32);
+        
         var key_count = buffer_read(buffer, buffer_u8);
         for (var i = 0; i &lt; key_count; i++)
         {

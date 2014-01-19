@@ -37,6 +37,10 @@ sprite_count = 0;
 sprites = ds_list_create();
 command_buffer = buffer_create(256, buffer_grow, 1);
 
+is_input_predicted = false;
+cmd_id = 0;
+predict_history = ds_queue_create();
+
 scr_log("Client Created")
 </string>
           </argument>
@@ -83,7 +87,7 @@ scr_log("Client Created")
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Send Keys (if pressed)
+            <string>/// How many keys are pressed?
 
 var key_count = 0;
 if (keyboard_check(vk_up)) key_count++;
@@ -92,9 +96,98 @@ if (keyboard_check(vk_left)) key_count++;
 if (keyboard_check(vk_right)) key_count++;
 
 if (key_count &gt; 0)
+    cmd_id++;
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Input Prediction
+
+if (key_count &gt; 0 &amp;&amp; is_input_predicted)
+{
+    var transferred_value_count = 3;
+    var offset = player * transferred_value_count;
+    
+    var _x = ds_list_find_value(sprites, offset);
+    var _y = ds_list_find_value(sprites, offset + 1);
+    var _color = ds_list_find_value(sprites, offset + 2);
+    
+    if (ds_queue_size(predict_history) &gt; 0)
+    {
+        _x = ds_list_find_value(ds_queue_tail(predict_history), 1);
+        _y = ds_list_find_value(ds_queue_tail(predict_history), 2);
+        _color = ds_list_find_value(ds_queue_tail(predict_history), 3);
+    }
+    
+    if (keyboard_check(vk_up))
+        _y -= 3;
+    if (keyboard_check(vk_down))
+        _y += 3;
+    if (keyboard_check(vk_left))
+        _x -= 3;
+    if (keyboard_check(vk_right))
+        _x += 3;
+    
+    ds_list_replace(sprites, offset, _x);
+    ds_list_replace(sprites, offset + 1, _y);
+
+    var prediction = ds_list_create();
+    ds_list_add(prediction, cmd_id);
+    ds_list_add(prediction, _x);
+    ds_list_add(prediction, _y);
+    ds_list_add(prediction, _color);
+       
+    scr_log("Predication Added " + 
+        string(ds_list_find_value(prediction, 0)) + " " +
+        string(ds_list_find_value(prediction, 1)) + "," +
+        string(ds_list_find_value(prediction, 2))
+    );
+    
+    ds_queue_enqueue(predict_history, prediction);
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Send Keys (if pressed)
+
+if (key_count &gt; 0)
 {
     buffer_seek(command_buffer, buffer_seek_start, 0);
     buffer_write(command_buffer, buffer_u8, CMD_KEYBOARD);
+    buffer_write(command_buffer, buffer_u32, cmd_id);
     buffer_write(command_buffer, buffer_u8, key_count);
 
     if (keyboard_check(vk_up))
@@ -140,6 +233,7 @@ if (client == eventid)
     var buffer = ds_map_find_value(async_load, "buffer");
     var command = buffer_read(buffer, buffer_u8);
     
+    // Offset by one more if you are not a local client
     if (!instance_exists(obj_server))
         command = buffer_read(buffer, buffer_u8);
     
@@ -147,13 +241,86 @@ if (client == eventid)
     {
         player = buffer_read(buffer, buffer_u8);
         sprite_count = buffer_read(buffer, buffer_u8);
-        ds_list_clear(sprites);
+        var last_cmd_id = buffer_read(buffer, buffer_u32);
+        
+        // Prepare incoming data to be drawn
+        if (sprite_count &gt; 0)
+            ds_list_clear(sprites);
         
         for (var i = 0; i &lt; sprite_count; i++)
         {
             ds_list_add(sprites, buffer_read(buffer, buffer_u16)); // x
             ds_list_add(sprites, buffer_read(buffer, buffer_u16)); // y
             ds_list_add(sprites, buffer_read(buffer, buffer_u32)); // image_blend
+        }
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Input Prediction
+
+if (client == eventid)
+{
+    if (command == CMD_UPDATE)
+    {        
+        // Compare with Prediction
+        if (is_input_predicted &amp;&amp; ds_queue_size(predict_history) &gt; 0 &amp;&amp; last_cmd_id &gt; 0)
+        {
+            // Clear queue until prediction time (or clear completely)
+            var list = ds_queue_head(predict_history)
+            while (ds_queue_size(predict_history) &gt; 0 &amp;&amp; ds_list_find_value(list, 0) &lt; last_cmd_id)
+                list = ds_queue_dequeue(predict_history);
+            
+            // Run following if we find exact prediction
+            if (ds_list_find_value(list, 0) == last_cmd_id)
+            {
+                var offset = player * 3;
+                for (var i = 0; i &lt; 3; i++)
+                {
+                    received = ds_list_find_value(sprites, i + offset);
+                    predicted = ds_list_find_value(list, i + 1);
+                    
+                    if (received != predicted)
+                    {
+                        scr_log("Prediction Error " + string(last_cmd_id) + " " + string(received) + " " + string(predicted));
+                        
+                        // Adjust error for current and future predictions
+                        if (ds_queue_size(predict_history) &gt; 0)
+                        {
+                            var delta_value = received - predicted;
+                            for (var j = 0; j &lt; ds_queue_size(predict_history); j++)
+                            {
+                                var new_list = ds_queue_dequeue(predict_history);
+                                var new_value = ds_list_find_value(new_list, i + 1) + delta_value;
+                                ds_list_replace(new_list, i + 1, new_value);
+                                ds_queue_enqueue(predict_history, new_list);
+                            }
+                            
+                            var new_list = ds_queue_tail(predict_history);
+                            var new_value = ds_list_find_value(new_list, i + 1);
+                            ds_list_replace(sprites, i + offset, new_value);
+                        }
+                    }
+                }
+            }
         }
     }       
 }
