@@ -158,8 +158,64 @@ if (socket_count &gt; 0)
 
 var type = ds_map_find_value(async_load, "type");
 var eventid = ds_map_find_value(async_load, "id");
+var command = -1;
 
 //scr_log("Server Recieved - " + string(eventid) + " " + string(type));
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receive Disconnect Client
+
+if (server == eventid &amp;&amp; type == network_type_disconnect)
+{
+    var socket = ds_map_find_value(async_load, "socket");
+    var instance = ds_map_find_value(client_list, socket);
+    ds_map_delete(client_list, socket);
+    var index = ds_list_find_index(socket_list, socket);
+    ds_list_delete(socket_list, index);
+    with (instance) instance_destroy();
+    
+    var ip = ds_map_find_value(async_load, "ip");    
+    scr_log("(" + string(socket) + ") " + string (ip) + " Disconnected");
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receive Connect Client
 
 if (server == eventid &amp;&amp; type == network_type_connect)
 {
@@ -172,23 +228,33 @@ if (server == eventid &amp;&amp; type == network_type_connect)
     var ip = ds_map_find_value(async_load, "ip");    
     scr_log("(" + string(socket) + ") " + string (ip) + " Connected");
 }
-else if (server == eventid &amp;&amp; type == network_type_disconnect)
-{
-    var socket = ds_map_find_value(async_load, "socket");
-    var instance = ds_map_find_value(client_list, socket);
-    ds_map_delete(client_list, socket);
-    var index = ds_list_find_index(socket_list, socket);
-    ds_list_delete(socket_list, index);
-    with (instance) instance_destroy();
-    
-    var ip = ds_map_find_value(async_load, "ip");    
-    scr_log("(" + string(socket) + ") " + string (ip) + " Disconnected");
-}
-else if (type == network_type_data)
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receive Keyboard Command
+
+if (type == network_type_data)
 {
     var socket = eventid;
     var buffer = ds_map_find_value(async_load, "buffer");
-    var command = buffer_read(buffer, buffer_u8);
+    command = buffer_read(buffer, buffer_u8);
     
     if (command == CMD_KEYBOARD)
     {
@@ -219,6 +285,45 @@ else if (type == network_type_data)
             else if (instance.y &gt; room_height-32)
                 instance.y = room_height-32;
         }
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receive Chat Command
+
+if (type == network_type_data &amp;&amp; command == CMD_CHAT)
+{
+    var chat_text = buffer_read(buffer, buffer_string);
+    var player_number = ds_list_find_index(socket_list, socket);
+    
+    buffer_seek(player_buffer, buffer_seek_start, 1);
+    buffer_write(player_buffer, buffer_u8, CMD_CHAT);
+    buffer_write(player_buffer, buffer_u8, player_number);
+    buffer_write(player_buffer, buffer_string, chat_text);
+    var buffer_size = buffer_tell(player_buffer);
+    
+    for (var i = 0; i &lt; ds_list_size(socket_list); i++)
+    {
+        var client_socket = ds_list_find_value(socket_list, i);
+        network_send_packet(client_socket, player_buffer, buffer_size);
     }
 }
 </string>

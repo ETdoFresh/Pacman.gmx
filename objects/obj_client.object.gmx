@@ -283,6 +283,27 @@ if (key_count &gt; 0)
 
 var eventid = ds_map_find_value(async_load, "id");
 var command = -1;
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receieve Update Command
 
 if (client == eventid)
 {
@@ -310,6 +331,35 @@ if (client == eventid)
             ds_list_add(sprites, buffer_read(buffer, buffer_u32)); // image_blend
         }
     }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receive Chat Command
+
+if (client == eventid &amp;&amp; command == CMD_CHAT)
+{
+    chat_from = buffer_read(buffer, buffer_u8);
+    chat_text = buffer_read(buffer, buffer_string);
+    
+    scr_log("[" + string(chat_from) + "] " + string(chat_text));
 }
 </string>
           </argument>
@@ -411,6 +461,39 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
         </arguments>
       </action>
     </event>
+    <event eventtype="7" enumb="11">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Send Chat Message
+
+if (string_length(chat_text) &gt; 0)
+{
+    buffer_seek(command_buffer, buffer_seek_start, 0);
+    buffer_write(command_buffer, buffer_u8, CMD_CHAT);
+    buffer_write(command_buffer, buffer_string, chat_text);
+    var buffer_size = buffer_tell(command_buffer)
+    network_send_packet(client, command_buffer, buffer_size);
+    chat_text = "";
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
     <event eventtype="7" enumb="10">
       <action>
         <libid>1</libid>
@@ -476,8 +559,9 @@ for (var i = 0; i &lt; sprite_count; i++)
     _blend = ds_list_find_value(sprites, index++);
     
     draw_sprite_ext(spr_player, 0, _x, _y, 1, 1, 0, _blend, 1.0);
-    
+        
     draw_set_color(c_white);
+    if (player == i) draw_set_color(c_navy);
     draw_set_halign(fa_center);
     draw_set_valign(fa_top);
     draw_text(_x + 16, _y - 20, "Player " + string(i));
