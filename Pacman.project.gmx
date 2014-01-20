@@ -46,11 +46,12 @@
     <room>rooms\rm_menu</room>
     <room>rooms\rm_game</room>
   </rooms>
-  <constants number="4">
+  <constants number="5">
+    <constant name="PORT">6515</constant>
     <constant name="CMD_KEYBOARD">1</constant>
     <constant name="CMD_UPDATE">2</constant>
     <constant name="CMD_CHAT">3</constant>
-    <constant name="PORT">6515</constant>
+    <constant name="CMD_LATENCY">4</constant>
   </constants>
   <help>
     <rtf>help.rtf</rtf>

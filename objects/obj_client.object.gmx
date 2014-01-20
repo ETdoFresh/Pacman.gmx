@@ -36,17 +36,65 @@ player = 0;
 sprite_count = 0;
 sprites = ds_list_create();
 command_buffer = buffer_create(256, buffer_grow, 1);
+last_update = 0;
+update_rate = 0;
+
+latency = 0;
+latency_interval = ceil(1000 / room_speed);
+alarm[0] = latency_interval;
+
+scr_log("Client Created")
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Entity Interpolation
+
+is_entity_interpolation = false;
+client_interpolation = 1250;
+packet_history = ds_queue_create();
+past_packet = ds_list_create();
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Client Prediction
 
 is_input_predicted = false;
 cmd_id = 0;
 predict_history = ds_queue_create();
-
-is_entity_interpolation = false;
-client_interpolation = 150;
-packet_history = ds_queue_create();
-past_packet = ds_list_create();
-
-scr_log("Client Created")
 </string>
           </argument>
         </arguments>
@@ -70,6 +118,36 @@ scr_log("Client Created")
           <argument>
             <kind>1</kind>
             <string>network_destroy(client);
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="2" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Send Latency Command
+
+buffer_seek(command_buffer, buffer_seek_start, 0);
+buffer_write(command_buffer, buffer_u8, CMD_LATENCY);
+buffer_write(command_buffer, buffer_u32, current_time);
+var buffer_size = buffer_tell(command_buffer)
+network_send_packet(client, command_buffer, buffer_size);
+alarm[0] = latency_interval;
 </string>
           </argument>
         </arguments>
@@ -126,7 +204,8 @@ if (key_count &gt; 0)
 
 if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
 {
-    var render_time = current_time - client_interpolation;
+    var calculated_interpolation = max(client_interpolation, floor(update_rate * 2.25));
+    var render_time = current_time - calculated_interpolation;
 
     var head = ds_queue_head(packet_history);
     while (ds_queue_size(packet_history) &gt; 0 &amp;&amp; ds_list_find_value(head, 0) &lt; render_time)
@@ -138,7 +217,7 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
     var past_time = ds_list_find_value(past_packet, 0);
     var head_time = ds_list_find_value(head, 0);
 
-    if (past_time &gt; 0 &amp;&amp; head_time - past_time &lt; client_interpolation * 3)
+    if (past_time &gt; 0 &amp;&amp; head_time != past_time)
     {
         //scr_log("Interop r: " + string(render_time) + " 1: " + string(before_time) + " 2: " + string(after_time));
         var t1 = render_time - past_time;
@@ -316,9 +395,16 @@ if (client == eventid)
     
     if (command == CMD_UPDATE)
     {
+        update_rate = current_time - last_update;
+        last_update = current_time;
+    
         player = buffer_read(buffer, buffer_u8);
         sprite_count = buffer_read(buffer, buffer_u8);
         var last_cmd_id = buffer_read(buffer, buffer_u32);
+        
+        /// Don't deal with packets older than 200 milliseconds
+        if (last_cmd_id &lt; cmd_id - ceil(200 / room_speed))
+            exit;
         
         // Prepare incoming data to be drawn
         if (sprite_count &gt; 0)
@@ -360,6 +446,33 @@ if (client == eventid &amp;&amp; command == CMD_CHAT)
     chat_text = buffer_read(buffer, buffer_string);
     
     scr_log("[" + string(chat_from) + "] " + string(chat_text));
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receive Latency Command
+
+if (client == eventid &amp;&amp; command == CMD_LATENCY)
+{
+    sent_time = buffer_read(buffer, buffer_u32);
+    latency = current_time - sent_time;
 }
 </string>
           </argument>
@@ -551,33 +664,36 @@ else
             <string>/// Draw all sprites
 
 var index = 0;
+var str = "";
+str += "Player Num: " + string(player);
+str += "#Players: " + string(sprites);
+
 for (var i = 0; i &lt; sprite_count; i++)
 {
     var _x, _y, _blend;
     _x = ds_list_find_value(sprites, index++);
     _y = ds_list_find_value(sprites, index++);
     _blend = ds_list_find_value(sprites, index++);
-    
-    draw_sprite_ext(spr_player, 0, _x, _y, 1, 1, 0, _blend, 1.0);
+
+    str += "#Player[" + string(i) + "].x: " + string(_x);
+    str += "#Player[" + string(i) + "].y: " + string(_y);
+    str += "#Player[" + string(i) + "].color: " + string(_blend);
         
+    draw_sprite_ext(spr_player, 0, _x, _y, 1, 1, 0, _blend, 1.0);
+
     draw_set_color(c_white);
     if (player == i) draw_set_color(c_navy);
+    draw_set_valign(fa_top);    
     draw_set_halign(fa_center);
-    draw_set_valign(fa_top);
     draw_text(_x + 16, _y - 20, "Player " + string(i));
-    
-    draw_text(_x + 16, _y + 32, string(_x) + ", " + string(_y));
 }
+
 draw_set_color(c_white);
 draw_set_halign(fa_left);
-draw_set_valign(fa_top);
-draw_text(0, 0, "Player Num: " + string(player)
- + "#Players: " + string(sprites)
- + "#sprite[0]: " + string(ds_list_find_value(sprites, 0))
- + "#sprite[1]: " + string(ds_list_find_value(sprites, 1))
- + "#sprite[2]: " + string(ds_list_find_value(sprites, 2))
- + "#sprite[3]: " + string(ds_list_find_value(sprites, 3))
-);
+str += "#Latency: " + string(latency);
+str += "#Update Rate: " + string(update_rate);
+str += "#Interpolation: " + string(max(client_interpolation, floor(update_rate * 2.25)));
+draw_text(0, 0, str);
 </string>
           </argument>
         </arguments>

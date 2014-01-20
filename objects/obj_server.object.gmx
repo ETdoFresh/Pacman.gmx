@@ -94,7 +94,7 @@ last_update = 0;
             <string>/// Server Send Packets
 
 // Packet Send Speed (in ms)
-var packet_speed = 45;
+var packet_speed = 500;
 if (current_time - last_update &lt; packet_speed)
     exit;
 last_update = current_time;
@@ -325,6 +325,38 @@ if (type == network_type_data &amp;&amp; command == CMD_CHAT)
         var client_socket = ds_list_find_value(socket_list, i);
         network_send_packet(client_socket, player_buffer, buffer_size);
     }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receive Latency Command
+
+if (type == network_type_data &amp;&amp; command == CMD_LATENCY)
+{
+    var sent_time = buffer_read(buffer, buffer_u32);
+    
+    buffer_seek(player_buffer, buffer_seek_start, 1);
+    buffer_write(player_buffer, buffer_u8, CMD_LATENCY);
+    buffer_write(player_buffer, buffer_u32, sent_time);
+    var buffer_size = buffer_tell(player_buffer);
+    network_send_packet(socket, player_buffer, buffer_size);
 }
 </string>
           </argument>
