@@ -6,12 +6,13 @@
   <NewExtensions/>
   <sounds name="sound"/>
   <sprites name="sprites">
-    <sprite>sprites\spr_player</sprite>
     <sprite>sprites\spr_button_dedicated_server</sprite>
     <sprite>sprites\spr_button_create_server</sprite>
     <sprite>sprites\spr_button_join_server</sprite>
     <sprite>sprites\spr_textbox</sprite>
     <sprite>sprites\spr_checkbox</sprite>
+    <sprite>sprites\spr_soldier</sprite>
+    <sprite>sprites\spr_soldier_tint</sprite>
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>

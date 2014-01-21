@@ -32,9 +32,11 @@ scr_log("Creating Client...")
 ip = "127.0.0.1";
 client = network_create_socket(network_socket_tcp);
 
-player = 0;
 sprite_count = 0;
+sprite_value = 4;
 sprites = ds_list_create();
+
+player = 0;
 command_buffer = buffer_create(256, buffer_grow, 1);
 last_update = 0;
 update_rate = 0;
@@ -67,7 +69,7 @@ scr_log("Client Created")
             <string>/// Entity Interpolation
 
 is_entity_interpolation = false;
-client_interpolation = 1250;
+client_interpolation = 250;
 packet_history = ds_queue_create();
 past_packet = ds_list_create();
 </string>
@@ -95,6 +97,19 @@ past_packet = ds_list_create();
 is_input_predicted = false;
 cmd_id = 0;
 predict_history = ds_queue_create();
+
+DOWN = 0;
+LEFT = 1;
+RIGHT = 2;
+UP = 3;
+
+last_update = 0;
+ms_per_frame = 1000 / 4; /// 4 frames per second
+facing = DOWN;
+img_num = 0;
+move_speed = 2;
+_xprevious = 0;
+_yprevious = 0;
 </string>
           </argument>
         </arguments>
@@ -223,11 +238,11 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
         var t1 = render_time - past_time;
         var t2 = head_time - past_time;
         var diff = t1 / t2;
-        var offset = player * 3 + 1;
+        var offset = player * sprite_value + 1;
         
         for (var i = 1; i &lt; ds_list_size(sprites); i++)
         {
-            if (offset &gt; i || i &gt;= offset + 3)
+            if (offset &gt; i || i &gt;= offset + sprite_value)
             {
                 var _x1 = ds_list_find_value(past_packet, i);
                 var _x2 = ds_list_find_value(head, i);
@@ -261,37 +276,58 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
 
 if (key_count &gt; 0 &amp;&amp; is_input_predicted)
 {
-    var transferred_value_count = 3;
-    var offset = player * transferred_value_count;
+    var offset = player * sprite_value;
     
     var _x = ds_list_find_value(sprites, offset);
     var _y = ds_list_find_value(sprites, offset + 1);
     var _color = ds_list_find_value(sprites, offset + 2);
+    var _img = ds_list_find_value(sprites, offset + 3);
     
     if (ds_queue_size(predict_history) &gt; 0)
     {
         _x = ds_list_find_value(ds_queue_tail(predict_history), 1);
         _y = ds_list_find_value(ds_queue_tail(predict_history), 2);
         _color = ds_list_find_value(ds_queue_tail(predict_history), 3);
+        _img = ds_list_find_value(ds_queue_tail(predict_history), 4);
+    }
+
+    if (keyboard_check(vk_left))
+    {
+        _x -= move_speed;
+        facing = LEFT;
+    }
+    if (keyboard_check(vk_right))
+    {
+        _x += move_speed;
+        facing = RIGHT;
+    }    
+    if (keyboard_check(vk_up))
+    {
+        _y -= move_speed;
+        facing = UP;
+    }
+    if (keyboard_check(vk_down))
+    {
+        _y += move_speed;
+        facing = DOWN;
     }
     
-    if (keyboard_check(vk_up))
-        _y -= 3;
-    if (keyboard_check(vk_down))
-        _y += 3;
-    if (keyboard_check(vk_left))
-        _x -= 3;
-    if (keyboard_check(vk_right))
-        _x += 3;
+    if (current_time - last_update &gt;= ms_per_frame)
+    {
+        _img = (_img + 1) % sprite_value + facing * sprite_value;
+        last_update = current_time;
+    }
     
     ds_list_replace(sprites, offset, _x);
     ds_list_replace(sprites, offset + 1, _y);
+    ds_list_replace(sprites, offset + 3, _img);
 
     var prediction = ds_list_create();
     ds_list_add(prediction, cmd_id);
     ds_list_add(prediction, _x);
     ds_list_add(prediction, _y);
     ds_list_add(prediction, _color);
+    ds_list_add(prediction, _img);
     
     ds_queue_enqueue(predict_history, prediction);
 }
@@ -324,14 +360,14 @@ if (key_count &gt; 0)
     buffer_write(command_buffer, buffer_u32, cmd_id);
     buffer_write(command_buffer, buffer_u8, key_count);
 
-    if (keyboard_check(vk_up))
-        buffer_write(command_buffer, buffer_s16, vk_up);
-    if (keyboard_check(vk_down))
-        buffer_write(command_buffer, buffer_s16, vk_down);
     if (keyboard_check(vk_left))
         buffer_write(command_buffer, buffer_s16, vk_left);
     if (keyboard_check(vk_right))
         buffer_write(command_buffer, buffer_s16, vk_right);
+    if (keyboard_check(vk_up))
+        buffer_write(command_buffer, buffer_s16, vk_up);
+    if (keyboard_check(vk_down))
+        buffer_write(command_buffer, buffer_s16, vk_down);
     
     var buffer_size = buffer_tell(command_buffer)
     network_send_packet(client, command_buffer, buffer_size);
@@ -415,6 +451,7 @@ if (client == eventid)
             ds_list_add(sprites, buffer_read(buffer, buffer_u16)); // x
             ds_list_add(sprites, buffer_read(buffer, buffer_u16)); // y
             ds_list_add(sprites, buffer_read(buffer, buffer_u32)); // image_blend
+            ds_list_add(sprites, buffer_read(buffer, buffer_u8)); // img_num
         }
     }
 }
@@ -538,8 +575,8 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
         // Run following if we find exact prediction
         if (ds_list_find_value(list, 0) == last_cmd_id)
         {
-            var offset = player * 3;
-            for (var i = 0; i &lt; 3; i++)
+            var offset = player * sprite_value;
+            for (var i = 0; i &lt; sprite_value; i++)
             {
                 received = ds_list_find_value(sprites, i + offset);
                 predicted = ds_list_find_value(list, i + 1);
@@ -674,12 +711,15 @@ for (var i = 0; i &lt; sprite_count; i++)
     _x = ds_list_find_value(sprites, index++);
     _y = ds_list_find_value(sprites, index++);
     _blend = ds_list_find_value(sprites, index++);
+    _img = ds_list_find_value(sprites, index++);
 
     str += "#Player[" + string(i) + "].x: " + string(_x);
     str += "#Player[" + string(i) + "].y: " + string(_y);
     str += "#Player[" + string(i) + "].color: " + string(_blend);
+    str += "#Player[" + string(i) + "].img: " + string(_img);
         
-    draw_sprite_ext(spr_player, 0, _x, _y, 1, 1, 0, _blend, 1.0);
+    draw_sprite_ext(spr_soldier, _img, _x, _y, 1, 1, 0, c_white, 1);
+    draw_sprite_ext(spr_soldier_tint, _img, _x, _y, 1, 1, 0, _blend, 1);
 
     draw_set_color(c_white);
     if (player == i) draw_set_color(c_navy);
