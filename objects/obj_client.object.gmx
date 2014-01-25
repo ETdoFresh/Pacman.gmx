@@ -32,11 +32,10 @@ scr_log("Creating Client...")
 ip = "127.0.0.1";
 client = network_create_socket(network_socket_tcp);
 
-sprite_count = 0;
-sprite_value = 4;
-sprites = ds_list_create();
-
 player = 0;
+players = 0;
+sprite_value = 3;
+
 command_buffer = buffer_create(256, buffer_grow, 1);
 last_update = 0;
 update_rate = 0;
@@ -103,13 +102,30 @@ LEFT = 1;
 RIGHT = 2;
 UP = 3;
 
-last_update = 0;
-ms_per_frame = 1000 / 4; /// 4 frames per second
-facing = DOWN;
-img_num = 0;
 move_speed = 2;
-_xprevious = 0;
-_yprevious = 0;
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Soldier Sprite
+
+is_soldier_enabled = false;
 </string>
           </argument>
         </arguments>
@@ -238,16 +254,20 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
         var t1 = render_time - past_time;
         var t2 = head_time - past_time;
         var diff = t1 / t2;
-        var offset = player * sprite_value + 1;
         
-        for (var i = 1; i &lt; ds_list_size(sprites); i++)
+        for (var i = 0; i &lt; instance_number(obj_client_target); i++)
         {
-            if (offset &gt; i || i &gt;= offset + sprite_value)
+            if (i == player) continue;
+            var instance = instance_find(obj_client_target, i);
+            
+            for (var j = 0; j &lt; sprite_value; j++)
             {
-                var _x1 = ds_list_find_value(past_packet, i);
-                var _x2 = ds_list_find_value(head, i);
-               _x1 += (_x2 - _x1) * diff;
-               ds_list_replace(sprites, i - 1, _x1);
+                var _x1 = ds_list_find_value(past_packet, 1 + i * sprite_value + j);
+                var _x2 = ds_list_find_value(head, 1 + i * sprite_value + j);
+                _x1 += (_x2 - _x1) * diff;
+                if (j == 0) instance.x = _x1;
+                else if (j == 1) instance.y = _x1;
+                else if (j == 2) instance.image_blend = _x1;
             }
         }
     }
@@ -276,60 +296,89 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
 
 if (key_count &gt; 0 &amp;&amp; is_input_predicted)
 {
-    var offset = player * sprite_value;
+    var instance = instance_find(obj_client_target, player);
     
-    var _x = ds_list_find_value(sprites, offset);
-    var _y = ds_list_find_value(sprites, offset + 1);
-    var _color = ds_list_find_value(sprites, offset + 2);
-    var _img = ds_list_find_value(sprites, offset + 3);
+    var _x = instance.x;
+    var _y = instance.y;
+    var _color = instance.image_blend;
     
     if (ds_queue_size(predict_history) &gt; 0)
     {
         _x = ds_list_find_value(ds_queue_tail(predict_history), 1);
         _y = ds_list_find_value(ds_queue_tail(predict_history), 2);
         _color = ds_list_find_value(ds_queue_tail(predict_history), 3);
-        _img = ds_list_find_value(ds_queue_tail(predict_history), 4);
     }
 
     if (keyboard_check(vk_left))
     {
         _x -= move_speed;
-        facing = LEFT;
     }
     if (keyboard_check(vk_right))
     {
         _x += move_speed;
-        facing = RIGHT;
     }    
     if (keyboard_check(vk_up))
     {
         _y -= move_speed;
-        facing = UP;
     }
     if (keyboard_check(vk_down))
     {
         _y += move_speed;
-        facing = DOWN;
     }
     
-    if (current_time - last_update &gt;= ms_per_frame)
-    {
-        _img = (_img + 1) % sprite_value + facing * sprite_value;
-        last_update = current_time;
-    }
+    instance.x = _x;
+    instance.y = _y;
     
-    ds_list_replace(sprites, offset, _x);
-    ds_list_replace(sprites, offset + 1, _y);
-    ds_list_replace(sprites, offset + 3, _img);
-
     var prediction = ds_list_create();
     ds_list_add(prediction, cmd_id);
     ds_list_add(prediction, _x);
     ds_list_add(prediction, _y);
     ds_list_add(prediction, _color);
-    ds_list_add(prediction, _img);
     
     ds_queue_enqueue(predict_history, prediction);
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Soldier Step
+
+while (instance_number(obj_soldier) &lt; players)
+    instance_create(0, 0, obj_soldier);
+
+while (instance_number(obj_soldier) &gt; players)
+    with(instance_find(obj_soldier, 0))
+        instance_destroy();
+
+for (var i = 0; i &lt; players; i++)
+    with (instance_find(obj_soldier, i))
+        target = instance_find(obj_client_target, i);
+
+if (is_soldier_enabled)
+{
+    obj_soldier.visible = true;
+    obj_client_target.visible = false;
+}
+else
+{
+    obj_soldier.visible = false;
+    obj_client_target.visible = true;
 }
 </string>
           </argument>
@@ -435,7 +484,7 @@ if (client == eventid)
         last_update = current_time;
     
         player = buffer_read(buffer, buffer_u8);
-        sprite_count = buffer_read(buffer, buffer_u8);
+        players = buffer_read(buffer, buffer_u8);
         var last_cmd_id = buffer_read(buffer, buffer_u32);
         
         /// Don't deal with packets older than 200 milliseconds
@@ -443,15 +492,19 @@ if (client == eventid)
             exit;
         
         // Prepare incoming data to be drawn
-        if (sprite_count &gt; 0)
-            ds_list_clear(sprites);
+        while (instance_number(obj_client_target) &lt; players)
+            instance_create(0, 0, obj_client_target);
         
-        for (var i = 0; i &lt; sprite_count; i++)
+        while (instance_number(obj_client_target) &gt; players)
+            with(instance_find(obj_client_target, 0))
+                instance_destroy();
+        
+        for (var i = 0; i &lt; players; i++)
         {
-            ds_list_add(sprites, buffer_read(buffer, buffer_u16)); // x
-            ds_list_add(sprites, buffer_read(buffer, buffer_u16)); // y
-            ds_list_add(sprites, buffer_read(buffer, buffer_u32)); // image_blend
-            ds_list_add(sprites, buffer_read(buffer, buffer_u8)); // img_num
+            var instance = instance_find(obj_client_target, i);
+            instance.x = buffer_read(buffer, buffer_u16);
+            instance.y = buffer_read(buffer, buffer_u16);
+            instance.image_blend = buffer_read(buffer, buffer_u32);
         }
     }
 }
@@ -536,9 +589,17 @@ if (client == eventid &amp;&amp; command == CMD_LATENCY)
 if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == CMD_UPDATE)
 { 
     var current_sprites = ds_list_create();
-    ds_list_copy(current_sprites, sprites);
-    ds_list_insert(current_sprites, 0, current_time);
-    ds_queue_enqueue(packet_history, current_sprites); 
+    
+    ds_list_add(current_sprites, current_time);
+    for (var i = 0; i &lt; instance_number(obj_client_target); i++)
+    {
+        var instance = instance_find(obj_client_target, i);
+        ds_list_add(current_sprites, instance.x);
+        ds_list_add(current_sprites, instance.y);
+        ds_list_add(current_sprites, instance.image_blend);
+    }
+    
+    ds_queue_enqueue(packet_history, current_sprites);
 }
 </string>
           </argument>
@@ -575,10 +636,15 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
         // Run following if we find exact prediction
         if (ds_list_find_value(list, 0) == last_cmd_id)
         {
-            var offset = player * sprite_value;
+            var instance = instance_find(obj_client_target, player);
+            var incoming = 0;
+            incoming[0] = instance.x;
+            incoming[1] = instance.y;
+            incoming[2] = instance.image_blend;
+            
             for (var i = 0; i &lt; sprite_value; i++)
             {
-                received = ds_list_find_value(sprites, i + offset);
+                received = incoming[i];
                 predicted = ds_list_find_value(list, i + 1);
                 
                 if (received != predicted)
@@ -599,7 +665,10 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
                         
                         var new_list = ds_queue_tail(predict_history);
                         var new_value = ds_list_find_value(new_list, i + 1);
-                        ds_list_replace(sprites, i + offset, new_value);
+                        
+                        if (i == 0) instance.x = new_value;
+                        else if (i == 1) instance.y = new_value;
+                        else if (i == 2) instance.image_blend = new_value;
                     }
                 }
             }
@@ -703,36 +772,34 @@ else
 var index = 0;
 var str = "";
 str += "Player Num: " + string(player);
-str += "#Players: " + string(sprites);
+str += "#Players: " + string(players);
 
-for (var i = 0; i &lt; sprite_count; i++)
+for (var i = 0; i &lt; players; i++)
 {
-    var _x, _y, _blend;
-    _x = ds_list_find_value(sprites, index++);
-    _y = ds_list_find_value(sprites, index++);
-    _blend = ds_list_find_value(sprites, index++);
-    _img = ds_list_find_value(sprites, index++);
+    var _x, _y, _blend, instance;
+    instance = instance_find(obj_client_target, i);
+    _x = instance.x;
+    _y = instance.y;
+    _blend = instance.image_blend;
 
     str += "#Player[" + string(i) + "].x: " + string(_x);
     str += "#Player[" + string(i) + "].y: " + string(_y);
     str += "#Player[" + string(i) + "].color: " + string(_blend);
-    str += "#Player[" + string(i) + "].img: " + string(_img);
-        
-    draw_sprite_ext(spr_soldier, _img, _x, _y, 1, 1, 0, c_white, 1);
-    draw_sprite_ext(spr_soldier_tint, _img, _x, _y, 1, 1, 0, _blend, 1);
 
     draw_set_color(c_white);
     if (player == i) draw_set_color(c_navy);
     draw_set_valign(fa_top);    
     draw_set_halign(fa_center);
-    draw_text(_x + 16, _y - 20, "Player " + string(i));
+    draw_text(_x + 8, _y - 20, "Player " + string(i));
 }
 
 draw_set_color(c_white);
 draw_set_halign(fa_left);
+draw_set_valign(fa_top);
 str += "#Latency: " + string(latency);
 str += "#Update Rate: " + string(update_rate);
 str += "#Interpolation: " + string(max(client_interpolation, floor(update_rate * 2.25)));
+str += "#Num Targets: " + string(instance_number(obj_client_target));
 draw_text(0, 0, str);
 </string>
           </argument>

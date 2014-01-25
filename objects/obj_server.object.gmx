@@ -106,7 +106,7 @@ last_update = current_time;
 var socket_count = ds_list_size(socket_list);
 if (socket_count &gt; 0)
 {    
-    var player_total = instance_number(obj_player);
+    var player_total = instance_number(obj_server_target);
 
     for (i = 0; i &lt; socket_count; i++)
     {    
@@ -118,14 +118,15 @@ if (socket_count &gt; 0)
         buffer_write(player_buffer, buffer_u8, CMD_UPDATE);
         buffer_write(player_buffer, buffer_u8, player_number);
         buffer_write(player_buffer, buffer_u8, player_total);
-        buffer_write(player_buffer, buffer_u32, instance.last_cmd_id);
         
-        with (obj_player)
+        with (instance)
+            buffer_write(other.player_buffer, buffer_u32, last_cmd_id);
+        
+        with (obj_server_target)
         {
             buffer_write(other.player_buffer, buffer_u16, x);
             buffer_write(other.player_buffer, buffer_u16, y);
             buffer_write(other.player_buffer, buffer_u32, image_blend);
-            buffer_write(other.player_buffer, buffer_u8, img_num);
         }
         
         var buffer_size = buffer_tell(player_buffer);
@@ -221,7 +222,7 @@ if (server == eventid &amp;&amp; type == network_type_disconnect)
 if (server == eventid &amp;&amp; type == network_type_connect)
 {
     var socket = ds_map_find_value(async_load, "socket");
-    var instance = instance_create(50, 50, obj_player);
+    var instance = instance_create(50, 50, obj_server_target);
     instance.image_blend = make_color_rgb(random(255), random(255), random(255));
     ds_list_add(socket_list, socket);
     ds_map_add(client_list, socket, instance);
@@ -269,34 +270,37 @@ if (type == network_type_data)
             
             if (key == vk_left)
             {
-                instance.x -= instance.move_speed;
-                instance.facing = instance.LEFT;
+                with (instance)
+                    x -= move_speed;
             }
             else if (key == vk_right)
             {
-                instance.x += instance.move_speed;
-                instance.facing = instance.RIGHT;
+                with (instance)
+                    x += move_speed;
             }
             else if (key == vk_up)
             {
-                instance.y -= instance.move_speed;
-                instance.facing = instance.UP;
+                with (instance)
+                    y -= move_speed;
             }
             else if (key == vk_down)
             {
-                instance.y += instance.move_speed;
-                instance.facing = instance.DOWN;
+                with (instance)
+                    y += move_speed;
             }
-                
-            if (instance.x &lt; 0)
-                instance.x = 0;
-            else if (instance.x &gt; obj_log_panel.x - 32)
-                instance.x = obj_log_panel.x - 32;
-                
-            if (instance.y &lt; 0)
-                instance.y = 0;
-            else if (instance.y &gt; room_height-32)
-                instance.y = room_height-32;
+ 
+            with (instance)
+            {
+                if (x &lt; 0)
+                    x = 0;
+                else if (x &gt; obj_log_panel.x - 32)
+                    x = obj_log_panel.x - 32;
+                    
+                if (y &lt; 0)
+                    y = 0;
+                else if (y &gt; room_height-32)
+                    y = room_height-32;
+            }
         }
     }
 }

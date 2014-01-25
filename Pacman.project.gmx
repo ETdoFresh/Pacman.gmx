@@ -13,6 +13,7 @@
     <sprite>sprites\spr_checkbox</sprite>
     <sprite>sprites\spr_soldier</sprite>
     <sprite>sprites\spr_soldier_tint</sprite>
+    <sprite>sprites\spr_diamond</sprite>
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
@@ -35,13 +36,16 @@
       <object>objects\obj_checkbox</object>
       <object>objects\obj_check_predict</object>
       <object>objects\obj_check_interop</object>
+      <object>objects\obj_check_soldier</object>
     </objects>
     <object>objects\obj_log_panel</object>
     <object>objects\obj_server</object>
     <object>objects\obj_client</object>
-    <object>objects\obj_player</object>
+    <object>objects\obj_soldier</object>
     <object>objects\obj_controller</object>
     <object>objects\obj_chat</object>
+    <object>objects\obj_server_target</object>
+    <object>objects\obj_client_target</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_menu</room>

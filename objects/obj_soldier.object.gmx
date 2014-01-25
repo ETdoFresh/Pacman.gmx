@@ -32,19 +32,55 @@ LEFT = 1;
 RIGHT = 2;
 UP = 3;
 
-image_alpha = 0.25;
-last_cmd_id = 0;
-
-image_speed = 4 / room_speed; /// 4 frames per second
+image_speed = 8 / room_speed; /// 8 frames per second
 facing = DOWN;
-img_num = 0;
-move_speed = 2;
+target = 0;
 </string>
           </argument>
         </arguments>
       </action>
     </event>
     <event eventtype="3" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Move towards target
+
+if (target != 0)
+{
+    if(target.x &gt; x) facing = RIGHT;
+    if(target.x &lt; x) facing = LEFT;
+    if(target.y &gt; y) facing = DOWN;
+    if(target.y &lt; y) facing = UP;
+
+    if (x != target.x)
+    {
+        var dx = min(abs(target.x - x), target.move_speed);
+        x += dx * sign (target.x - x);
+    }
+    if (y != target.y)
+    {
+        var dy = min(abs(target.y - y), target.move_speed);
+        y += dy * sign (target.y - y);
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -100,7 +136,9 @@ else
 
 img_num = image_index % 4 + facing * 4;
 draw_sprite_ext(spr_soldier, img_num, x, y, 1, 1, 0, c_white, image_alpha);
-draw_sprite_ext(spr_soldier_tint, img_num, x, y, 1, 1, 0, image_blend, image_alpha);
+
+if (target != 0)
+    draw_sprite_ext(spr_soldier_tint, img_num, x, y, 1, 1, 0, target.image_blend, image_alpha);
 </string>
           </argument>
         </arguments>
