@@ -78,6 +78,7 @@ room_goto(rm_menu);
 
 with (obj_server) instance_destroy();
 with (obj_client) instance_destroy();
+with (obj_soldier) instance_destroy();
 with (obj_player) instance_destroy();
 
 room_goto(rm_menu);

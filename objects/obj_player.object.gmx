@@ -25,10 +25,11 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Initialize Server Target
+            <string>/// Initialize Player
 
-image_alpha = 0.25;
-last_cmd_id = 0;
+number = -1;
+socket = -1;
+
 move_speed = 2;
 </string>
           </argument>
@@ -48,7 +49,7 @@ move_speed = 2;
   <PhysicsObjectAwake>-1</PhysicsObjectAwake>
   <PhysicsObjectKinematic>0</PhysicsObjectKinematic>
   <PhysicsShapePoints>
-    <point>8,8</point>
+    <point>0,0</point>
     <point>8,8</point>
   </PhysicsShapePoints>
 </object>

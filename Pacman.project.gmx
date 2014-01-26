@@ -44,8 +44,9 @@
     <object>objects\obj_soldier</object>
     <object>objects\obj_controller</object>
     <object>objects\obj_chat</object>
-    <object>objects\obj_server_target</object>
-    <object>objects\obj_client_target</object>
+    <object>objects\obj_client_player</object>
+    <object>objects\obj_server_player</object>
+    <object>objects\obj_player</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_menu</room>

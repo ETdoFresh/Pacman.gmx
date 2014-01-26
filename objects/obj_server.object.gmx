@@ -42,8 +42,7 @@ else
     scr_log("Server Created");
 }
 
-socket_list = ds_list_create();
-client_list = ds_map_create();
+player_list = ds_list_create();
 player_buffer = buffer_create(256, buffer_grow, 1);
 last_update = 0;
 </string>
@@ -68,7 +67,9 @@ last_update = 0;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>network_destroy(server);
+            <string>/// Destroy Server
+
+network_destroy(server);
 </string>
           </argument>
         </arguments>
@@ -102,36 +103,29 @@ last_update = current_time;
 // Simulate random packet loss 
 // if (random(100) &lt; 50) exit;
 
-
-var socket_count = ds_list_size(socket_list);
-if (socket_count &gt; 0)
+var player_total = ds_list_size(player_list);
+if (player_total &gt; 0)
 {    
-    var player_total = instance_number(obj_server_target);
-
-    for (i = 0; i &lt; socket_count; i++)
-    {    
-        var socket = ds_list_find_value(socket_list, i);
-        var instance = ds_map_find_value(client_list, socket);
-        var player_number = i;
+    for (i = 0; i &lt; player_total; i++)
+    {
+        var player = ds_list_find_value(player_list, i);
         
         buffer_seek(player_buffer, buffer_seek_start, 1);
         buffer_write(player_buffer, buffer_u8, CMD_UPDATE);
-        buffer_write(player_buffer, buffer_u8, player_number);
+        buffer_write(player_buffer, buffer_u8, player.number);
         buffer_write(player_buffer, buffer_u8, player_total);
+        buffer_write(player_buffer, buffer_u32, player.last_cmd_id);
         
-        with (instance)
-            buffer_write(other.player_buffer, buffer_u32, last_cmd_id);
-        
-        with (obj_server_target)
+        with (obj_server_player)
         {
+            buffer_write(other.player_buffer, buffer_u8, number);
             buffer_write(other.player_buffer, buffer_u16, x);
             buffer_write(other.player_buffer, buffer_u16, y);
             buffer_write(other.player_buffer, buffer_u32, image_blend);
         }
         
         var buffer_size = buffer_tell(player_buffer);
-    
-        network_send_packet(socket, player_buffer, buffer_size);
+        network_send_packet(player.socket, player_buffer, buffer_size);
     }
 }
 </string>
@@ -183,19 +177,33 @@ var command = -1;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Receive Disconnect Client
+            <string>/// Receive Connect Client
 
-if (server == eventid &amp;&amp; type == network_type_disconnect)
+if (server == eventid &amp;&amp; type == network_type_connect)
 {
-    var socket = ds_map_find_value(async_load, "socket");
-    var instance = ds_map_find_value(client_list, socket);
-    ds_map_delete(client_list, socket);
-    var index = ds_list_find_index(socket_list, socket);
-    ds_list_delete(socket_list, index);
-    with (instance) instance_destroy();
+    var player = instance_create(50, 50, obj_server_player);
+    player.image_blend = make_color_rgb(random(255), random(255), random(255));
+    player.socket = ds_map_find_value(async_load, "socket");
     
+    for (var i = 1; i &lt; 256; i++)
+    {
+        var is_used = false;
+        for (j = 0; j &lt; ds_list_size(player_list); j++)
+        {
+            if (ds_list_find_value(player_list, j).number == i)
+                is_used = true;
+        }
+        if (!is_used)
+        {
+            player.number = i;
+            break;
+        }
+    }
+    
+    ds_list_add(player_list, player);
+
     var ip = ds_map_find_value(async_load, "ip");    
-    scr_log("(" + string(socket) + ") " + string (ip) + " Disconnected");
+    scr_log("(" + string(player.socket) + ") " + string (ip) + " Connected");
 }
 </string>
           </argument>
@@ -217,18 +225,26 @@ if (server == eventid &amp;&amp; type == network_type_disconnect)
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Receive Connect Client
+            <string>/// Receive Disconnect Client
 
-if (server == eventid &amp;&amp; type == network_type_connect)
+if (server == eventid &amp;&amp; type == network_type_disconnect)
 {
     var socket = ds_map_find_value(async_load, "socket");
-    var instance = instance_create(50, 50, obj_server_target);
-    instance.image_blend = make_color_rgb(random(255), random(255), random(255));
-    ds_list_add(socket_list, socket);
-    ds_map_add(client_list, socket, instance);
 
-    var ip = ds_map_find_value(async_load, "ip");    
-    scr_log("(" + string(socket) + ") " + string (ip) + " Connected");
+    for (var i = 0; i &lt; ds_list_size(player_list); i++)
+    {
+        var player = ds_list_find_value(player_list, i);
+        if (player.socket == socket)
+        {
+            ds_list_delete(player_list, i);
+            
+            var ip = ds_map_find_value(async_load, "ip");    
+            scr_log("(" + string(player.socket) + ") " + string (ip) + " Disconnected");
+            
+            with (player) instance_destroy();
+            break;
+        }
+    }
 }
 </string>
           </argument>
@@ -260,8 +276,15 @@ if (type == network_type_data)
     
     if (command == CMD_KEYBOARD)
     {
-        var instance = ds_map_find_value(client_list, socket);
-        instance.last_cmd_id = buffer_read(buffer, buffer_u32);
+        var player = -1;
+        for (var i = 0; i &lt; ds_list_size(player_list); i++)
+        {
+            player = ds_list_find_value(player_list, i);
+            if (player.socket == socket) break;
+        }
+        if (player == -1) exit;
+        
+        player.last_cmd_id = buffer_read(buffer, buffer_u32);
         
         var key_count = buffer_read(buffer, buffer_u8);
         for (var i = 0; i &lt; key_count; i++)
@@ -269,38 +292,23 @@ if (type == network_type_data)
             var key = buffer_read(buffer, buffer_s16);
             
             if (key == vk_left)
-            {
-                with (instance)
-                    x -= move_speed;
-            }
+                player.x -= player.move_speed;
             else if (key == vk_right)
-            {
-                with (instance)
-                    x += move_speed;
-            }
+                player.x += player.move_speed;
             else if (key == vk_up)
-            {
-                with (instance)
-                    y -= move_speed;
-            }
+                player.y -= player.move_speed;
             else if (key == vk_down)
-            {
-                with (instance)
-                    y += move_speed;
-            }
+                player.y += player.move_speed;
  
-            with (instance)
-            {
-                if (x &lt; 0)
-                    x = 0;
-                else if (x &gt; obj_log_panel.x - 32)
-                    x = obj_log_panel.x - 32;
-                    
-                if (y &lt; 0)
-                    y = 0;
-                else if (y &gt; room_height-32)
-                    y = room_height-32;
-            }
+            if (player.x &lt; 0)
+                player.x = 0;
+            else if (player.x &gt; obj_log_panel.x - 32)
+                player.x = obj_log_panel.x - 32;                
+ 
+            if (player.y &lt; 0)
+                player.y = 0;
+            else if (player.y &gt; room_height-32)
+                player.y = room_height-32;
         }
     }
 }
@@ -329,18 +337,23 @@ if (type == network_type_data)
 if (type == network_type_data &amp;&amp; command == CMD_CHAT)
 {
     var chat_text = buffer_read(buffer, buffer_string);
-    var player_number = ds_list_find_index(socket_list, socket);
+
+    for (var i = 0; i &lt; ds_list_size(player_list); i++)
+    {
+        var player = ds_list_find_value(player_list, i);
+        if (player.socket == socket) break;
+    }
     
     buffer_seek(player_buffer, buffer_seek_start, 1);
     buffer_write(player_buffer, buffer_u8, CMD_CHAT);
-    buffer_write(player_buffer, buffer_u8, player_number);
+    buffer_write(player_buffer, buffer_u8, player.number);
     buffer_write(player_buffer, buffer_string, chat_text);
     var buffer_size = buffer_tell(player_buffer);
     
-    for (var i = 0; i &lt; ds_list_size(socket_list); i++)
+    for (var i = 0; i &lt; ds_list_size(player_list); i++)
     {
-        var client_socket = ds_list_find_value(socket_list, i);
-        network_send_packet(client_socket, player_buffer, buffer_size);
+        var player = ds_list_find_value(player_list, i);
+        network_send_packet(player.socket, player_buffer, buffer_size);
     }
 }
 </string>

@@ -32,7 +32,8 @@ LEFT = 1;
 RIGHT = 2;
 UP = 3;
 
-image_speed = 8 / room_speed; /// 8 frames per second
+anim_speed = 8 / room_speed; /// 8 frames per second
+image_speed = anim_speed;
 facing = DOWN;
 target = 0;
 </string>
@@ -101,7 +102,7 @@ if (target != 0)
 
 if (x != xprevious || y != yprevious)
 {
-    image_speed = 4 / room_speed; /// 4 frames per second
+    image_speed = anim_speed;
     xprevious = x;
     yprevious = y;
 }
