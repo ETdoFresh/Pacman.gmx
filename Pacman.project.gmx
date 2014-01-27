@@ -14,6 +14,7 @@
     <sprite>sprites\spr_soldier</sprite>
     <sprite>sprites\spr_soldier_tint</sprite>
     <sprite>sprites\spr_diamond</sprite>
+    <sprite>sprites\spr_bullet</sprite>
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
@@ -47,17 +48,20 @@
     <object>objects\obj_client_player</object>
     <object>objects\obj_server_player</object>
     <object>objects\obj_player</object>
+    <object>objects\obj_bullet</object>
+    <object>objects\obj_client_bullet</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_menu</room>
     <room>rooms\rm_game</room>
   </rooms>
-  <constants number="5">
+  <constants number="6">
     <constant name="PORT">6515</constant>
     <constant name="CMD_KEYBOARD">1</constant>
     <constant name="CMD_UPDATE">2</constant>
     <constant name="CMD_CHAT">3</constant>
     <constant name="CMD_LATENCY">4</constant>
+    <constant name="CMD_MOUSE">5</constant>
   </constants>
   <help>
     <rtf>help.rtf</rtf>

@@ -33,10 +33,12 @@ ip = "127.0.0.1";
 client = network_create_socket(network_socket_tcp);
 
 players = 0;
+bullets = 0;
 player_number = -1;
 player_list = ds_list_create();
 update_data = ds_list_create();
 updated_list = ds_list_create();
+num_values = 0; // Set in Network Event
 
 command_buffer = buffer_create(256, buffer_grow, 1);
 last_update = 0;
@@ -70,7 +72,7 @@ scr_log("Client Created")
             <string>/// Entity Interpolation
 
 is_entity_interpolation = false;
-client_interpolation = 250;
+client_interpolation = 200;
 packet_history = ds_queue_create();
 past_packet = ds_list_create();
 </string>
@@ -209,15 +211,10 @@ alarm[0] = latency_interval;
 
 var key_count = 0;
 
-var key_up = keyboard_check(vk_up);
-var key_down = keyboard_check(vk_down);
-var key_left = keyboard_check(vk_left);
-var key_right = keyboard_check(vk_right);
-
-if (keyboard_check(vk_up)) key_count++;
-if (keyboard_check(vk_down)) key_count++;
-if (keyboard_check(vk_left)) key_count++;
-if (keyboard_check(vk_right)) key_count++;
+if (keyboard_check(vk_up) || keyboard_check(ord('W'))) key_count++;
+if (keyboard_check(vk_left) || keyboard_check(ord('A'))) key_count++;
+if (keyboard_check(vk_down) || keyboard_check(ord('S'))) key_count++;
+if (keyboard_check(vk_right) || keyboard_check(ord('D'))) key_count++;
 
 if (key_count &gt; 0)
     cmd_id++;
@@ -261,13 +258,13 @@ if (key_count &gt; 0 &amp;&amp; is_input_predicted)
     }
     
     // Update Player
-    if (keyboard_check(vk_left))
+    if (keyboard_check(vk_left) || keyboard_check(ord('A')))
         player.x -= move_speed;
-    if (keyboard_check(vk_right))
+    if (keyboard_check(vk_right) || keyboard_check(ord('D')))
         player.x += move_speed;
-    if (keyboard_check(vk_up))
+    if (keyboard_check(vk_up) || keyboard_check(ord('W')))
         player.y -= move_speed;
-    if (keyboard_check(vk_down))
+    if (keyboard_check(vk_down) || keyboard_check(ord('S')))
         player.y += move_speed;
     
     // Log Prediction
@@ -301,9 +298,9 @@ if (key_count &gt; 0 &amp;&amp; is_input_predicted)
 
 if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
 {
-    var calculated_interpolation = max(client_interpolation, floor(update_rate * 2.25));
-    var render_time = current_time - calculated_interpolation;
+    var render_time = current_time - client_interpolation;
 
+    // Past_packet is the packet before Render time. Head is the packet after or on Render time.
     var head = ds_queue_head(packet_history);
     while (ds_queue_size(packet_history) &gt; 0 &amp;&amp; ds_list_find_value(head, 0) &lt; render_time)
     {
@@ -314,26 +311,44 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
     var past_time = ds_list_find_value(past_packet, 0);
     var head_time = ds_list_find_value(head, 0);
 
+    // Calculate Entity Variable Values between past_time and head_time
     if (past_time &gt; 0 &amp;&amp; head_time != past_time)
     {
+        // Calculate point of time between both times
         //scr_log("Interop r: " + string(render_time) + " 1: " + string(before_time) + " 2: " + string(after_time));
         var t1 = render_time - past_time;
         var t2 = head_time - past_time;
         var diff = t1 / t2;
         
+        // Computer difference of variables between past_time and head_time
         for (var i = 0; i &lt; instance_number(obj_client_player); i++)
         {
             var player = instance_find(obj_client_player, i);
             if (player.number == player_number) continue;
             
-            for (var j = 0; j &lt; 3; j++)
+            // Does Player exist in past packet?
+            var offset1 = -1;
+            for (var j = 1; j &lt; ds_list_size(past_packet); j = j + num_values)
+                if (ds_list_find_value(past_packet, j) == player.number)
+                    offset1 = j;
+            
+            // Does Player exist in head packet?
+            var offset2 = -1;
+            for (var j = 1; j &lt; ds_list_size(head); j = j + num_values)
+                if (ds_list_find_value(head, j) == player.number)
+                    offset2 = j;
+           
+            if (offset1 &gt;= 0 &amp;&amp; offset2 &gt;= 0)
             {
-                var _x1 = ds_list_find_value(past_packet, 1 + i * 3 + j);
-                var _x2 = ds_list_find_value(head, 1 + i * 3 + j);
-                _x1 += (_x2 - _x1) * diff;
-                if (j == 0) player.x = _x1;
-                else if (j == 1) player.y = _x1;
-                else if (j == 2) player.image_blend = _x1;
+                // Update 2 values (X and Y)
+                for (var j = 1; j &lt; 3; j++)
+                {
+                    var _x1 = ds_list_find_value(past_packet, offset1 + j);
+                    var _x2 = ds_list_find_value(head, offset2 + j);
+                    _x1 += (_x2 - _x1) * diff;
+                    if (j == 1) player.x = _x1;
+                    if (j == 2) player.y = _x1;
+                }
             }
         }
     }
@@ -399,14 +414,46 @@ if (key_count &gt; 0)
     buffer_write(command_buffer, buffer_u32, cmd_id);
     buffer_write(command_buffer, buffer_u8, key_count);
 
-    if (keyboard_check(vk_left))
+    if (keyboard_check(vk_left) || keyboard_check(ord('A')))
         buffer_write(command_buffer, buffer_s16, vk_left);
-    if (keyboard_check(vk_right))
+    if (keyboard_check(vk_right) || keyboard_check(ord('D')))
         buffer_write(command_buffer, buffer_s16, vk_right);
-    if (keyboard_check(vk_up))
+    if (keyboard_check(vk_up) || keyboard_check(ord('W')))
         buffer_write(command_buffer, buffer_s16, vk_up);
-    if (keyboard_check(vk_down))
+    if (keyboard_check(vk_down) || keyboard_check(ord('S')))
         buffer_write(command_buffer, buffer_s16, vk_down);
+    
+    var buffer_size = buffer_tell(command_buffer)
+    network_send_packet(client, command_buffer, buffer_size);
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Send Mouse Press
+
+if (mouse_check_button_pressed(mb_left))
+{
+    buffer_seek(command_buffer, buffer_seek_start, 0);
+    buffer_write(command_buffer, buffer_u8, CMD_MOUSE);
+    buffer_write(command_buffer, buffer_s16, mouse_x);
+    buffer_write(command_buffer, buffer_s16, mouse_y);
     
     var buffer_size = buffer_tell(command_buffer)
     network_send_packet(client, command_buffer, buffer_size);
@@ -475,10 +522,11 @@ if (client == eventid)
         
         player_number = buffer_read(buffer, buffer_u8);
         players = buffer_read(buffer, buffer_u8);
+        bullets = buffer_read(buffer, buffer_u16);
         var last_cmd_id = buffer_read(buffer, buffer_u32);
 
         ds_list_clear(update_data);
-        var num_values = 4;
+        num_values = 4;
         
         for (var i = 0; i &lt; players; i++)
         {
@@ -486,6 +534,13 @@ if (client == eventid)
             ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // x
             ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // y
             ds_list_add(update_data, buffer_read(buffer, buffer_u32)); // image_blend
+        }
+        
+        for (var i = 0; i &lt; bullets; i++)
+        {
+            ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // x
+            ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // y
+            ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // rotation
         }
     }
 }
@@ -657,16 +712,8 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
 if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == CMD_UPDATE)
 { 
     var current_sprites = ds_list_create();
-    
-    ds_list_add(current_sprites, current_time);
-    for (var i = 0; i &lt; instance_number(obj_client_player); i++)
-    {
-        var instance = instance_find(obj_client_player, i);
-        ds_list_add(current_sprites, instance.x);
-        ds_list_add(current_sprites, instance.y);
-        ds_list_add(current_sprites, instance.image_blend);
-    }
-    
+    ds_list_copy(current_sprites, update_data);
+    ds_list_insert(current_sprites, 0, current_time);
     ds_queue_enqueue(packet_history, current_sprites);
 }
 </string>
@@ -743,6 +790,25 @@ if (client == eventid &amp;&amp; command == CMD_UPDATE)
             ds_list_delete(player_list, index);
             with (player) instance_destroy();
         }
+    }
+    
+    while (instance_number(obj_client_bullet) &lt; bullets)
+        instance_create(0, 0, obj_client_bullet);
+    
+    while (instance_number(obj_client_bullet) &gt; bullets)
+        with(instance_find(obj_client_bullet, 0))
+            instance_destroy();
+    
+    for (var i = 0; i &lt; bullets; i++)
+    {
+        var bullet = instance_find(obj_client_bullet, i);
+        bullet.x = ds_list_find_value(update_data, players * num_values + i * 3 + 0);
+        bullet.y = ds_list_find_value(update_data, players * num_values + i * 3 + 1);
+        bullet.image_angle = ds_list_find_value(update_data, players * num_values + i * 3 + 2);
+        
+        var _x = 100 * cos(degtorad(bullet.image_angle));
+        var _y = 100 * -sin(degtorad(bullet.image_angle));
+        with (bullet) move_towards_point(bullet.x + _x, bullet.y + _y, 4)
     }
 }
 </string>
@@ -868,7 +934,7 @@ draw_set_halign(fa_left);
 draw_set_valign(fa_top);
 str += "#Latency: " + string(latency);
 str += "#Update Rate: " + string(update_rate);
-str += "#Interpolation: " + string(max(client_interpolation, floor(update_rate * 2.25)));
+str += "#Interpolation: " + string(client_interpolation);
 draw_text(0, 0, str);
 </string>
           </argument>

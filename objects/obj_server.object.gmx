@@ -114,6 +114,7 @@ if (player_total &gt; 0)
         buffer_write(player_buffer, buffer_u8, CMD_UPDATE);
         buffer_write(player_buffer, buffer_u8, player.number);
         buffer_write(player_buffer, buffer_u8, player_total);
+        buffer_write(player_buffer, buffer_u16, instance_number(obj_bullet));
         buffer_write(player_buffer, buffer_u32, player.last_cmd_id);
         
         with (obj_server_player)
@@ -122,6 +123,13 @@ if (player_total &gt; 0)
             buffer_write(other.player_buffer, buffer_u16, x);
             buffer_write(other.player_buffer, buffer_u16, y);
             buffer_write(other.player_buffer, buffer_u32, image_blend);
+        }
+        
+        with (obj_bullet)
+        {
+            buffer_write(other.player_buffer, buffer_u16, x);
+            buffer_write(other.player_buffer, buffer_u16, y);
+            buffer_write(other.player_buffer, buffer_u16, image_angle);
         }
         
         var buffer_size = buffer_tell(player_buffer);
@@ -310,6 +318,49 @@ if (type == network_type_data)
             else if (player.y &gt; room_height-32)
                 player.y = room_height-32;
         }
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Receive Mouse Command
+
+if (type == network_type_data &amp;&amp; command == CMD_MOUSE)
+{
+    // Find player based on socket
+    var player = -1;
+    for (var i = 0; i &lt; ds_list_size(player_list); i++)
+    {
+        player = ds_list_find_value(player_list, i);
+        if (player.socket == socket) break;
+    }
+    if (player == -1) exit;
+
+    var _x = buffer_read(buffer, buffer_s16);
+    var _y = buffer_read(buffer, buffer_s16);
+    
+    with(instance_create(player.x + 8, player.y + 16, obj_bullet))
+    {
+        move_towards_point(_x, _y, 4);
+        image_angle = point_direction(player.x + 8, player.y + 16, _x, _y);
+        image_alpha = 0.25;
     }
 }
 </string>
