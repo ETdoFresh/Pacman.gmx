@@ -32,13 +32,11 @@ scr_log("Creating Client...")
 ip = "127.0.0.1";
 client = network_create_socket(network_socket_tcp);
 
-players = 0;
-bullets = 0;
 player_number = -1;
-player_list = ds_list_create();
+entities = 0;
+entity_list = ds_list_create();
 update_data = ds_list_create();
-updated_list = ds_list_create();
-num_values = 0; // Set in Network Event
+sync_list = ds_list_create();
 
 command_buffer = buffer_create(256, buffer_grow, 1);
 last_update = 0;
@@ -47,6 +45,8 @@ update_rate = 0;
 latency = 0;
 latency_interval = ceil(1000 / room_speed);
 alarm[0] = latency_interval;
+
+shooting_mode = false;
 
 scr_log("Client Created")
 </string>
@@ -243,36 +243,41 @@ if (key_count &gt; 0)
 if (key_count &gt; 0 &amp;&amp; is_input_predicted)
 {
     // Get Client Player Instance
+    var player = -1;
     for (var i = 0; i &lt; instance_number(obj_client_player); i++)
     {
         var player = instance_find(obj_client_player, i);
         if (player.number == player_number) break;
+        else player = -1;
     }
     
-    // Update player to most recent prediction
-    if (ds_queue_size(predict_history) &gt; 0)
+    if (player &gt;= 0)
     {
-        var recent_list = ds_queue_tail(predict_history);
-        player.x = ds_list_find_value(recent_list, 1);
-        player.y = ds_list_find_value(recent_list, 2);
+        // Update player to most recent prediction
+        if (ds_queue_size(predict_history) &gt; 0)
+        {
+            var recent_list = ds_queue_tail(predict_history);
+            player.x = ds_list_find_value(recent_list, 1);
+            player.y = ds_list_find_value(recent_list, 2);
+        }
+        
+        // Update Player
+        if (keyboard_check(vk_left) || keyboard_check(ord('A')))
+            player.x -= move_speed;
+        if (keyboard_check(vk_right) || keyboard_check(ord('D')))
+            player.x += move_speed;
+        if (keyboard_check(vk_up) || keyboard_check(ord('W')))
+            player.y -= move_speed;
+        if (keyboard_check(vk_down) || keyboard_check(ord('S')))
+            player.y += move_speed;
+        
+        // Queue Prediction
+        var prediction = ds_list_create();
+        ds_list_add(prediction, cmd_id);
+        ds_list_add(prediction, player.x);
+        ds_list_add(prediction, player.y);
+        ds_queue_enqueue(predict_history, prediction);
     }
-    
-    // Update Player
-    if (keyboard_check(vk_left) || keyboard_check(ord('A')))
-        player.x -= move_speed;
-    if (keyboard_check(vk_right) || keyboard_check(ord('D')))
-        player.x += move_speed;
-    if (keyboard_check(vk_up) || keyboard_check(ord('W')))
-        player.y -= move_speed;
-    if (keyboard_check(vk_down) || keyboard_check(ord('S')))
-        player.y += move_speed;
-    
-    // Log Prediction
-    var prediction = ds_list_create();
-    ds_list_add(prediction, cmd_id);
-    ds_list_add(prediction, player.x);
-    ds_list_add(prediction, player.y);
-    ds_queue_enqueue(predict_history, prediction);
 }
 </string>
           </argument>
@@ -320,34 +325,96 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
         var t2 = head_time - past_time;
         var diff = t1 / t2;
         
-        // Computer difference of variables between past_time and head_time
-        for (var i = 0; i &lt; instance_number(obj_client_player); i++)
+        // Compute difference of variables between past_time and head_time
+        for (i = 0; i &lt; ds_list_size(entity_list); i++)
         {
-            var player = instance_find(obj_client_player, i);
-            if (player.number == player_number) continue;
+            var entity = ds_list_find_value(entity_list, i);
             
-            // Does Player exist in past packet?
+            if (entity.object_index == obj_client_player &amp;&amp; player_number == entity.number)
+                continue;
+            
+            //scr_log("Entity Interop started... id" + string(entity.entity_id));
+            
+            // Does Entity exist in past packet?
             var offset1 = -1;
-            for (var j = 1; j &lt; ds_list_size(past_packet); j = j + num_values)
-                if (ds_list_find_value(past_packet, j) == player.number)
-                    offset1 = j;
+            var j = 1;
+            while (j &lt; ds_list_size(past_packet))
+            {
+                //scr_log("Entity Interop past_packet... id" + string(ds_list_find_value(past_packet, j + 1)));
+                if (ds_list_find_value(past_packet, j) == TYPE_PLAYER)
+                {
+                    if (ds_list_find_value(past_packet, j + 1) == entity.entity_id)
+                    {
+                        offset1 = j;
+                        break;
+                    }
+                    j = j + VAR_COUNT_PLAYER;
+                }
+                else if (ds_list_find_value(past_packet, j) == TYPE_BULLET)
+                {
+                    if (ds_list_find_value(past_packet, j + 1) == entity.entity_id)
+                    {
+                        offset1 = j;
+                        break;
+                    }
+                    j = j + VAR_COUNT_BULLET;
+                }
+                else
+                    break;
+            }
             
-            // Does Player exist in head packet?
+            // Does Entity exist in head packet?
             var offset2 = -1;
-            for (var j = 1; j &lt; ds_list_size(head); j = j + num_values)
-                if (ds_list_find_value(head, j) == player.number)
-                    offset2 = j;
+            var j = 1;
+            while (j &lt; ds_list_size(head))
+            {
+                if (ds_list_find_value(head, j) == TYPE_PLAYER)
+                {
+                    if (ds_list_find_value(head, j + 1) == entity.entity_id)
+                    {
+                        offset2 = j;
+                        break;
+                    }
+                    j = j + VAR_COUNT_PLAYER;
+                }
+                else if (ds_list_find_value(head, j) == TYPE_BULLET)
+                {
+                    if (ds_list_find_value(head, j + 1) == entity.entity_id)
+                    {
+                        offset2 = j;
+                        break;
+                    }
+                    j = j + VAR_COUNT_BULLET;
+                }
+                else
+                    break;
+            }
            
+            // If entity found in both packets
             if (offset1 &gt;= 0 &amp;&amp; offset2 &gt;= 0)
             {
-                // Update 2 values (X and Y)
-                for (var j = 1; j &lt; 3; j++)
+                if (entity.object_index == obj_client_player)
                 {
-                    var _x1 = ds_list_find_value(past_packet, offset1 + j);
-                    var _x2 = ds_list_find_value(head, offset2 + j);
+                    var _x1 = ds_list_find_value(past_packet, offset1 + 3);
+                    var _x2 = ds_list_find_value(head, offset2 + 3);
+                    var _y1 = ds_list_find_value(past_packet, offset1 + 4);
+                    var _y2 = ds_list_find_value(head, offset2 + 4);
                     _x1 += (_x2 - _x1) * diff;
-                    if (j == 1) player.x = _x1;
-                    if (j == 2) player.y = _x1;
+                    _y1 += (_y2 - _y1) * diff;
+                    entity.x = _x1;
+                    entity.y = _y1;                    
+                }
+                else if (entity.object_index == obj_client_bullet)
+                {
+                    var _x1 = ds_list_find_value(past_packet, offset1 + 2);
+                    var _x2 = ds_list_find_value(head, offset2 + 2);
+                    var _y1 = ds_list_find_value(past_packet, offset1 + 3);
+                    var _y2 = ds_list_find_value(head, offset2 + 3);
+                    _x1 += (_x2 - _x1) * diff;
+                    _y1 += (_y2 - _y1) * diff;
+                    entity.x = _x1;
+                    entity.y = _y1;
+                    entity.visible = true;
                 }
             }
         }
@@ -448,7 +515,7 @@ if (key_count &gt; 0)
             <kind>1</kind>
             <string>/// Send Mouse Press
 
-if (mouse_check_button_pressed(mb_left))
+if (mouse_check_button_pressed(mb_left) &amp;&amp; shooting_mode)
 {
     buffer_seek(command_buffer, buffer_seek_start, 0);
     buffer_write(command_buffer, buffer_u8, CMD_MOUSE);
@@ -520,27 +587,31 @@ if (client == eventid)
         update_rate = current_time - last_update;
         last_update = current_time;
         
+        entities = buffer_read(buffer, buffer_u16);
         player_number = buffer_read(buffer, buffer_u8);
-        players = buffer_read(buffer, buffer_u8);
-        bullets = buffer_read(buffer, buffer_u16);
         var last_cmd_id = buffer_read(buffer, buffer_u32);
 
         ds_list_clear(update_data);
-        num_values = 4;
         
-        for (var i = 0; i &lt; players; i++)
+        for (var i = 0; i &lt; entities; i++)
         {
-            ds_list_add(update_data, buffer_read(buffer, buffer_u8)); // player_number
-            ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // x
-            ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // y
-            ds_list_add(update_data, buffer_read(buffer, buffer_u32)); // image_blend
-        }
-        
-        for (var i = 0; i &lt; bullets; i++)
-        {
-            ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // x
-            ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // y
-            ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // rotation
+            var type = buffer_read(buffer, buffer_u8);
+            ds_list_add(update_data, type);
+            ds_list_add(update_data, buffer_read(buffer, buffer_u32)); // entity id
+            
+            if (type == TYPE_PLAYER)
+            {
+                ds_list_add(update_data, buffer_read(buffer, buffer_u8)); // player_number
+                ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // x
+                ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // y
+                ds_list_add(update_data, buffer_read(buffer, buffer_u32)); // image_blend
+            }
+            else if (type == TYPE_BULLET)
+            {
+                ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // x
+                ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // y
+                ds_list_add(update_data, buffer_read(buffer, buffer_u16)); // image_angle
+            }
         }
     }
 }
@@ -626,10 +697,20 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
 {
     // Get Client Player Instance Offset in Update List
     var offset = 0;
-    for (var i = 0; i &lt; players * num_values; i = i + num_values)
+    var i = 0;
+    while (i &lt; ds_list_size(update_data))
     {
         offset = i;
-        if (player_number == ds_list_find_value(update_data, i)) break;
+        if (ds_list_find_value(update_data, i) == TYPE_PLAYER)
+        {
+            if (player_number == ds_list_find_value(update_data, i + 2))
+                break;
+            i = i + VAR_COUNT_PLAYER;
+        }
+        else if (ds_list_find_value(update_data, i) == TYPE_BULLET)
+            i = i + VAR_COUNT_BULLET;
+        else
+            break;
     }
         
     // Compare with Prediction
@@ -645,8 +726,8 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
         {            
             // Get Variables of Client Player we need to verify predictions
             var incoming = 0;
-            incoming[0] = ds_list_find_value(update_data, offset + 1);
-            incoming[1] = ds_list_find_value(update_data, offset + 2);
+            incoming[0] = ds_list_find_value(update_data, offset + 3);
+            incoming[1] = ds_list_find_value(update_data, offset + 4);
             var incoming_size = array_length_1d(incoming);
             
             // Check Prediction vs Received
@@ -683,8 +764,8 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
     if (ds_queue_size(predict_history) &gt; 0)
     {
         var recent_list = ds_queue_tail(predict_history);
-        ds_list_replace(update_data, offset + 1 ,ds_list_find_value(recent_list, 1)); // x
-        ds_list_replace(update_data, offset + 2 ,ds_list_find_value(recent_list, 2)); // y
+        ds_list_replace(update_data, offset + 3 ,ds_list_find_value(recent_list, 1)); // x
+        ds_list_replace(update_data, offset + 4 ,ds_list_find_value(recent_list, 2)); // y
     }
 }
 </string>
@@ -740,75 +821,93 @@ if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == C
 
 if (client == eventid &amp;&amp; command == CMD_UPDATE)
 {
-    ds_list_clear(updated_list);
+    ds_list_clear(sync_list);
     
-    for (var i = 0; i &lt; players; i++)
+    var entity;
+    var i = 0;
+    while (i &lt; ds_list_size(update_data))
     {
-        var incoming_number = ds_list_find_value(update_data, i * num_values);
-        var player;
-        var found_player = false;
-        for (var j = 0; j &lt; ds_list_size(player_list); j++)
+        var type = ds_list_find_value(update_data, i);
+        var entity_id = ds_list_find_value(update_data, i + 1);
+
+        // Search for Entity
+        var found_entity = false;
+        for (var j = 0; j &lt; ds_list_size(entity_list); j++)
         {
-            player = ds_list_find_value(player_list, j);
-            if (player.number == incoming_number)
+            entity = ds_list_find_value(entity_list, j);
+            if (entity.entity_id == entity_id)
             {
-                found_player = true;
+                found_entity = true;
                 break;
             }
         }
-        if (!found_player)
+        
+        // If Entity not found, Add Entity
+        if (!found_entity)
         {
-            player = instance_create(0, 0, obj_client_player);
-            player.number = incoming_number
-            ds_list_add(player_list, player);
+            if (type == TYPE_PLAYER)
+            {
+                entity = instance_create(0, 0, obj_client_player);
+                entity.entity_id = entity_id;
+                entity.number = ds_list_find_value(update_data, i + 2);
+                ds_list_add(entity_list, entity);
+            }
+            else if (type == TYPE_BULLET)
+            {
+                entity = instance_create(0, 0, obj_client_bullet);
+                entity.entity_id = entity_id;
+                ds_list_add(entity_list, entity);
+                
+                // Show after interpolation started
+                if (is_entity_interpolation)
+                    entity.visible = false;
+            }
         }
         
-        player.number = incoming_number;
-        player.x = ds_list_find_value(update_data, i * num_values + 1);
-        player.y = ds_list_find_value(update_data, i * num_values + 2);
-        player.image_blend = ds_list_find_value(update_data, i * num_values + 3);
+        // Update entity
+        if (type == TYPE_PLAYER)
+        {
+            entity.x = ds_list_find_value(update_data, i + 3);
+            entity.y = ds_list_find_value(update_data, i + 4);
+            entity.image_blend = ds_list_find_value(update_data, i + 5);
+            i = i + VAR_COUNT_PLAYER;
+        }
+        else if (type == TYPE_BULLET)
+        {
+            entity.x = ds_list_find_value(update_data, i + 2);
+            entity.y = ds_list_find_value(update_data, i + 3);
+            entity.image_angle = ds_list_find_value(update_data, i + 4);
+            i = i + VAR_COUNT_BULLET;
+        }
+        else
+            break;
         
-        ds_list_add(updated_list, player.number);
+        ds_list_add(sync_list, entity.entity_id);
     }
     
-    // Remove Players
-    for (var i = 0; i &lt; ds_list_size(player_list); i++)
+    // Remove Entities
+    for (var i = 0; i &lt; ds_list_size(entity_list); i++)
     {
-        var player = ds_list_find_value(player_list, i);
-        var found_player = false;
-        for (var j = 0; j &lt; ds_list_size(updated_list); j++)
+        var entity = ds_list_find_value(entity_list, i);
+        
+        // Search for Entity
+        var found_entity = false;
+        for (var j = 0; j &lt; ds_list_size(sync_list); j++)
         {
-            if (player.number == ds_list_find_value(updated_list, j))
+            if (entity.entity_id == ds_list_find_value(sync_list, j))
             {
-                found_player = true;
+                found_entity = true;
                 break;
             }
         }
-        if (!found_player)
+
+        // If Entity was not updated, destroy it
+        if (!found_entity)
         {
-            var index = ds_list_find_index(player_list, player);
-            ds_list_delete(player_list, index);
-            with (player) instance_destroy();
+            var index = ds_list_find_index(entity_list, entity);
+            ds_list_delete(entity_list, index);
+            with (entity) instance_destroy();
         }
-    }
-    
-    while (instance_number(obj_client_bullet) &lt; bullets)
-        instance_create(0, 0, obj_client_bullet);
-    
-    while (instance_number(obj_client_bullet) &gt; bullets)
-        with(instance_find(obj_client_bullet, 0))
-            instance_destroy();
-    
-    for (var i = 0; i &lt; bullets; i++)
-    {
-        var bullet = instance_find(obj_client_bullet, i);
-        bullet.x = ds_list_find_value(update_data, players * num_values + i * 3 + 0);
-        bullet.y = ds_list_find_value(update_data, players * num_values + i * 3 + 1);
-        bullet.image_angle = ds_list_find_value(update_data, players * num_values + i * 3 + 2);
-        
-        var _x = 100 * cos(degtorad(bullet.image_angle));
-        var _y = 100 * -sin(degtorad(bullet.image_angle));
-        with (bullet) move_towards_point(bullet.x + _x, bullet.y + _y, 4)
     }
 }
 </string>
@@ -908,7 +1007,7 @@ else
 var index = 0;
 var str = "";
 str += "Player Num: " + string(player_number);
-str += "#Players: " + string(instance_number(obj_client_player));
+str += "#Players: " + string(entities);
 
 for (var i = 0; i &lt; instance_number(obj_client_player); i++)
 {
@@ -936,6 +1035,36 @@ str += "#Latency: " + string(latency);
 str += "#Update Rate: " + string(update_rate);
 str += "#Interpolation: " + string(client_interpolation);
 draw_text(0, 0, str);
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="9" enumb="32">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Toggle Shooting Mode
+
+shooting_mode = !shooting_mode;
+
+if (shooting_mode)
+    scr_log("Shooting Mode is ON");
+else
+    scr_log("Shooting Mode is OFF");
 </string>
           </argument>
         </arguments>
