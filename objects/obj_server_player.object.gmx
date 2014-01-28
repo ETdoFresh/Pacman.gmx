@@ -31,7 +31,6 @@ event_inherited();
 
 image_alpha = 0.25;
 last_cmd_id = 0;
-entity_id = -1;
 </string>
           </argument>
         </arguments>

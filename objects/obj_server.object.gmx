@@ -44,7 +44,6 @@ else
 
 last_update = 0;
 
-entity_id = 0;
 entity_list = ds_list_create();
 entity_buffer = buffer_create(256, buffer_grow, 1);
 </string>
@@ -94,7 +93,7 @@ network_destroy(server);
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Server Send Packets
+            <string>/// Packet Speed
 
 // Packet Send Speed (in ms)
 var packet_speed = 100;
@@ -104,42 +103,50 @@ last_update = current_time;
 
 // Simulate random packet loss 
 // if (random(100) &lt; 50) exit;
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Server Send Packets
 
 var entities = ds_list_size(entity_list);
 for (i = 0; i &lt; entities; i++)
 {
     var player = ds_list_find_value(entity_list, i);
     if (player.object_index == obj_server_player)
-    {    
+    {
         buffer_seek(entity_buffer, buffer_seek_start, 1);
         buffer_write(entity_buffer, buffer_u8, CMD_UPDATE);
-        buffer_write(entity_buffer, buffer_u16, entities);
         buffer_write(entity_buffer, buffer_u8, player.number);
         buffer_write(entity_buffer, buffer_u32, player.last_cmd_id);
+        buffer_write(entity_buffer, buffer_u32, entities);
 
         for (var j = 0; j &lt; entities; j++)
         {
             var entity = ds_list_find_value(entity_list, j);
-            
-            switch (entity.object_index)
-            {
-                case obj_server_player:
-                    buffer_write(entity_buffer, buffer_u8, TYPE_PLAYER);
-                    buffer_write(entity_buffer, buffer_u32, entity.entity_id);
-                    buffer_write(entity_buffer, buffer_u8, entity.number);
-                    buffer_write(entity_buffer, buffer_u16, entity.x);
-                    buffer_write(entity_buffer, buffer_u16, entity.y);
-                    buffer_write(entity_buffer, buffer_u32, entity.image_blend);
-                break;
-
-                case obj_bullet:
-                    buffer_write(entity_buffer, buffer_u8, TYPE_BULLET);
-                    buffer_write(entity_buffer, buffer_u32, entity.entity_id);
-                    buffer_write(entity_buffer, buffer_u16, entity.x);
-                    buffer_write(entity_buffer, buffer_u16, entity.y);
-                    buffer_write(entity_buffer, buffer_u16, entity.image_angle);                
-                break;
-            }
+            buffer_write(entity_buffer, buffer_u32, entity.object_index);
+            buffer_write(entity_buffer, buffer_u32, entity.id);
+            buffer_write(entity_buffer, buffer_u16, entity.x);
+            buffer_write(entity_buffer, buffer_u16, entity.y);
+            buffer_write(entity_buffer, buffer_u16, entity.image_angle);
+            buffer_write(entity_buffer, buffer_u32, entity.image_blend);
+            buffer_write(entity_buffer, buffer_u8, entity.number);
         }
         
         var buffer_size = buffer_tell(entity_buffer);
@@ -203,7 +210,6 @@ if (server == eventid &amp;&amp; type == network_type_connect)
     var player = instance_create(50, 50, obj_server_player);
     player.image_blend = make_color_rgb(random(255), random(255), random(255));
     player.socket = ds_map_find_value(async_load, "socket");
-    player.entity_id = entity_id++;
     ds_list_add(entity_list, player);
     
     // Figure out Player Number
@@ -294,7 +300,7 @@ if (server == eventid &amp;&amp; type == network_type_disconnect)
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Receive Keyboard Command
+            <string>/// Receive Input Command
 
 if (type == network_type_data)
 {
@@ -302,7 +308,7 @@ if (type == network_type_data)
     var buffer = ds_map_find_value(async_load, "buffer");
     command = buffer_read(buffer, buffer_u8);
     
-    if (command == CMD_KEYBOARD)
+    if (command == CMD_INPUT)
     {
         var player = -1;
         for (var i = 0; i &lt; ds_list_size(entity_list); i++)
@@ -319,18 +325,18 @@ if (type == network_type_data)
         
         player.last_cmd_id = buffer_read(buffer, buffer_u32);
         
-        var key_count = buffer_read(buffer, buffer_u8);
-        for (var i = 0; i &lt; key_count; i++)
+        var input_count = buffer_read(buffer, buffer_u8);
+        for (var i = 0; i &lt; input_count; i++)
         {
-            var key = buffer_read(buffer, buffer_s16);
+            var input = buffer_read(buffer, buffer_s16);
             
-            if (key == vk_left)
+            if (input == vk_left)
                 player.x -= player.move_speed;
-            else if (key == vk_right)
+            else if (input == vk_right)
                 player.x += player.move_speed;
-            else if (key == vk_up)
+            else if (input == vk_up)
                 player.y -= player.move_speed;
-            else if (key == vk_down)
+            else if (input == vk_down)
                 player.y += player.move_speed;
  
             if (player.x &lt; 0)
@@ -342,58 +348,22 @@ if (type == network_type_data)
                 player.y = 0;
             else if (player.y &gt; room_height-32)
                 player.y = room_height-32;
+            
+            // Mouse Button Pressed
+            if (input == mb_left)
+            {
+                var _x = buffer_read(buffer, buffer_s16);
+                var _y = buffer_read(buffer, buffer_s16);
+                
+                // Add bullet entity
+                var bullet = instance_create(player.x + 8, player.y + 16, obj_bullet);
+                bullet.image_angle = point_direction(player.x + 8, player.y + 16, _x, _y);
+                bullet.image_alpha = 0.25;
+                with (bullet) move_towards_point(_x, _y, 5);
+                ds_list_add(entity_list, bullet);
+            }
         }
     }
-}
-</string>
-          </argument>
-        </arguments>
-      </action>
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Receive Mouse Command
-
-if (type == network_type_data &amp;&amp; command == CMD_MOUSE)
-{
-    // Find player based on socket
-    var player = -1;
-    for (var i = 0; i &lt; ds_list_size(entity_list); i++)
-    {
-        player = ds_list_find_value(entity_list, i);
-        if (player.object_index == obj_server_player)
-        {
-            if (player.socket == socket) break;
-        }
-        else
-            player = -1;
-    }
-    if (player == -1) exit;
-
-    var _x = buffer_read(buffer, buffer_s16);
-    var _y = buffer_read(buffer, buffer_s16);
-    
-    // Add bullet entity
-    var bullet = instance_create(player.x + 8, player.y + 16, obj_bullet);
-    bullet.entity_id = entity_id++;
-    bullet.image_angle = point_direction(player.x + 8, player.y + 16, _x, _y);
-    bullet.image_alpha = 0.25;
-    with (bullet) move_towards_point(_x, _y, 5);
-    
-    ds_list_add(entity_list, bullet);
 }
 </string>
           </argument>

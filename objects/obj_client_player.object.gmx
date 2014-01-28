@@ -29,6 +29,7 @@
 
 event_inherited();
 
+server_id = -1;
 soldier = instance_create(x, y, obj_soldier);
 soldier.visible = false;
 soldier.target = id;

@@ -27,7 +27,7 @@
             <kind>1</kind>
             <string>/// Initialize Bullet
 
-entity_id = -1;
+number = -1;
 alarm[0] = room_speed;
 </string>
           </argument>
@@ -59,7 +59,7 @@ with (obj_server)
     for (var i = 0; i &lt; ds_list_size(entity_list); i++)
     {
         var entity = ds_list_find_value(entity_list, i);
-        if (entity.entity_id == other.entity_id)
+        if (entity.id == other.id)
         {
             var index = ds_list_find_index(entity_list, entity);
             ds_list_delete(entity_list, index);
