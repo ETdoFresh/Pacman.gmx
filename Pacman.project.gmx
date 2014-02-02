@@ -49,7 +49,6 @@
     <object>objects\obj_server_player</object>
     <object>objects\obj_player</object>
     <object>objects\obj_bullet</object>
-    <object>objects\obj_client_bullet</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_menu</room>

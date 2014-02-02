@@ -236,41 +236,37 @@ if (input_count &gt; 0)
 
 if (input_count &gt; 0 &amp;&amp; is_input_predicted)
 {
-    // Get Client Player Instance
-    var player = -1;
-    for (var i = 0; i &lt; instance_number(obj_client_player); i++)
+    for (var i = 0; i &lt; entities; i++)
     {
-        var player = instance_find(obj_client_player, i);
-        if (player.number == player_number) break;
-        else player = -1;
-    }
-    
-    if (player &gt;= 0)
-    {
-        // Update player to most recent prediction
-        if (ds_queue_size(predict_history) &gt; 0)
+        var entity = ds_list_find_value(entity_list, i);
+        
+        if (entity.object_index == obj_client_player
+        &amp;&amp; entity.number = player_number)
         {
-            var recent_list = ds_queue_tail(predict_history);
-            player.x = ds_list_find_value(recent_list, 1);
-            player.y = ds_list_find_value(recent_list, 2);
+            // Update player to most recent prediction
+            if (ds_queue_size(predict_history) &gt; 0)
+            {
+                var latest_prediction = ds_queue_tail(predict_history);
+                entity.x = ds_list_find_value(latest_prediction, 1);
+                entity.y = ds_list_find_value(latest_prediction, 2);
+            }
+            // Update Player
+            if (keyboard_check(vk_left) || keyboard_check(ord('A')))
+                with (entity) event_perform(ev_other, ev_user0); // Left Command
+            if (keyboard_check(vk_right) || keyboard_check(ord('D')))
+                with (entity) event_perform(ev_other, ev_user1); // Right Command
+            if (keyboard_check(vk_up) || keyboard_check(ord('W')))
+                with (entity) event_perform(ev_other, ev_user2); // Up Command
+            if (keyboard_check(vk_down) || keyboard_check(ord('S')))
+                with (entity) event_perform(ev_other, ev_user3); // Down Command
+            
+            // Queue Prediction
+            var prediction = ds_list_create();
+            ds_list_add(prediction, cmd_id);
+            ds_list_add(prediction, entity.x);
+            ds_list_add(prediction, entity.y);
+            ds_queue_enqueue(predict_history, prediction);
         }
-        
-        // Update Player
-        if (keyboard_check(vk_left) || keyboard_check(ord('A')))
-            player.x -= player.move_speed;
-        if (keyboard_check(vk_right) || keyboard_check(ord('D')))
-            player.x += player.move_speed;
-        if (keyboard_check(vk_up) || keyboard_check(ord('W')))
-            player.y -= player.move_speed;
-        if (keyboard_check(vk_down) || keyboard_check(ord('S')))
-            player.y += player.move_speed;
-        
-        // Queue Prediction
-        var prediction = ds_list_create();
-        ds_list_add(prediction, cmd_id);
-        ds_list_add(prediction, player.x);
-        ds_list_add(prediction, player.y);
-        ds_queue_enqueue(predict_history, prediction);
     }
 }
 </string>
@@ -325,7 +321,8 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
             var entity = ds_list_find_value(entity_list, i);
 
             // If Entity is Predicted, Skip
-            if (player_number == entity.number) continue;
+            if (entity.number == player_number) continue;
+            if (entity.object_index == obj_bullet) continue;
             
             // Does Entity exist in past packet?
             var past_entity = -1;
@@ -358,10 +355,6 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
                 _y1 += (_y2 - _y1) * diff;
                 entity.x = _x1;
                 entity.y = _y1;
-                
-                // Show bullets once this starts calculating!
-                if (entity.object_index == obj_client_bullet)
-                    entity.visible = true;
             }
         }
     }
@@ -743,9 +736,6 @@ if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == C
 if (client == eventid &amp;&amp; command == CMD_UPDATE)
 {
     ds_list_clear(sync_list);
-    
-    var entity;
-    var i = 0;
     for (var i = 0; i &lt; entities; i++)
     {
         var incoming_list = ds_list_find_value(update_data, i);
@@ -753,32 +743,35 @@ if (client == eventid &amp;&amp; command == CMD_UPDATE)
         var server_id = ds_list_find_value(incoming_list, 1);
 
         // Search for Entity
-        var found_entity = false;
+        var entity = -1;
         for (var j = 0; j &lt; ds_list_size(entity_list); j++)
         {
             entity = ds_list_find_value(entity_list, j);
             if (entity.server_id == server_id)
-            {
-                found_entity = true;
                 break;
-            }
+            entity = -1;
         }        
         // If Entity not found, Add Entity
-        if (!found_entity)
+        if (entity &lt; 0)
         {
             var obj_type = -1;
             if (server_type == obj_server_player) obj_type = obj_client_player;
-            else if (server_type == obj_bullet) obj_type = obj_client_bullet;
+            else if (server_type == obj_bullet) obj_type = obj_bullet;
             else continue;
 
-            entity = instance_create(0, 0, obj_type);
+            var _x = ds_list_find_value(incoming_list, 2);
+            var _y = ds_list_find_value(incoming_list, 3);
+            entity = instance_create(_x, _y, obj_type);
             entity.server_id = server_id;
             entity.number = ds_list_find_value(incoming_list, 6);
             ds_list_add(entity_list, entity);
             
-            // Show after entity interpolation started
-            if (server_type == obj_bullet &amp;&amp; is_entity_interpolation)
-                entity.visible = false;
+            if (server_type == obj_bullet)
+            {
+                entity.alarm[0] = -1; // Don't destroy client bullets automatically
+                entity.target_x = ds_list_find_value(incoming_list, 7);
+                entity.target_y = ds_list_find_value(incoming_list, 8);
+            }
         }
         
         // Update entity

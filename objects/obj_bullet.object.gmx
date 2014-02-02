@@ -31,6 +31,7 @@ number = -1;
 target_x = 0;
 target_y = 0;
 move_speed = 5;
+server_id = -1;
 alarm[0] = room_speed;
 </string>
           </argument>
@@ -96,7 +97,10 @@ instance_destroy();
             <kind>1</kind>
             <string>/// Move Towards Target
 
-move_towards_point(target_x, target_y, move_speed);
+var _x = target_x - xstart + x;
+var _y = target_y - ystart + y;
+
+move_towards_point(_x, _y, move_speed);
 </string>
           </argument>
         </arguments>
