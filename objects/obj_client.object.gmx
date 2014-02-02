@@ -35,7 +35,7 @@ client = network_create_socket(network_socket_tcp);
 player_number = -1;
 entities = 0;
 entity_list = ds_list_create();
-update_data = 0;
+update_data = ds_list_create();
 sync_list = ds_list_create();
 
 command_buffer = buffer_create(256, buffer_grow, 1);
@@ -100,13 +100,6 @@ past_packet = ds_list_create();
 is_input_predicted = false;
 cmd_id = 0;
 predict_history = ds_queue_create();
-
-DOWN = 0;
-LEFT = 1;
-RIGHT = 2;
-UP = 3;
-
-move_speed = 2;
 </string>
           </argument>
         </arguments>
@@ -264,13 +257,13 @@ if (input_count &gt; 0 &amp;&amp; is_input_predicted)
         
         // Update Player
         if (keyboard_check(vk_left) || keyboard_check(ord('A')))
-            player.x -= move_speed;
+            player.x -= player.move_speed;
         if (keyboard_check(vk_right) || keyboard_check(ord('D')))
-            player.x += move_speed;
+            player.x += player.move_speed;
         if (keyboard_check(vk_up) || keyboard_check(ord('W')))
-            player.y -= move_speed;
+            player.y -= player.move_speed;
         if (keyboard_check(vk_down) || keyboard_check(ord('S')))
-            player.y += move_speed;
+            player.y += player.move_speed;
         
         // Queue Prediction
         var prediction = ds_list_create();
@@ -335,34 +328,32 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
             if (player_number == entity.number) continue;
             
             // Does Entity exist in past packet?
-            var offset1 = -1;
-            for (var j = 1; j &lt; ds_list_size(past_packet); j = j + NETWORK_VAR_COUNT)
+            var past_entity = -1;
+            for (var j = 1; j &lt; ds_list_size(past_packet); j++)
             {
-                if (ds_list_find_value(past_packet, j + 1) == entity.server_id)
-                {
-                    offset1 = j;
+                past_entity = ds_list_find_value(past_packet, j);
+                if (ds_list_find_value(past_entity, 1) == entity.server_id)
                     break;
-                }
+                past_entity = -1
             }
             
             // Does Entity exist in head packet?
-            var offset2 = -1;
-            for (var j = 1; j &lt; ds_list_size(head); j = j + NETWORK_VAR_COUNT)
+            var head_entity = -1;
+            for (var j = 1; j &lt; ds_list_size(head); j++)
             {
-                if (ds_list_find_value(head, j + 1) == entity.server_id)
-                {
-                    offset2 = j;
+                head_entity = ds_list_find_value(head, j);
+                if (ds_list_find_value(head_entity, 1) == entity.server_id)
                     break;
-                }
+                head_entity = -1;
             }
            
             // If entity found in both packets
-            if (offset1 &gt;= 0 &amp;&amp; offset2 &gt;= 0)
+            if (past_entity &gt;= 0 &amp;&amp; head_entity &gt;= 0)
             {
-                var _x1 = ds_list_find_value(past_packet, offset1 + 2);
-                var _x2 = ds_list_find_value(head, offset2 + 2);
-                var _y1 = ds_list_find_value(past_packet, offset1 + 3);
-                var _y2 = ds_list_find_value(head, offset2 + 3);
+                var _x1 = ds_list_find_value(past_entity, 2);
+                var _x2 = ds_list_find_value(head_entity, 2);
+                var _y1 = ds_list_find_value(past_entity, 3);
+                var _y2 = ds_list_find_value(head_entity, 3);
                 _x1 += (_x2 - _x1) * diff;
                 _y1 += (_y2 - _y1) * diff;
                 entity.x = _x1;
@@ -517,20 +508,34 @@ if (client == eventid)
         update_rate = current_time - last_update;
         last_update = current_time;
         
+        // Read Header Information
         player_number = buffer_read(buffer, buffer_u8);
         var last_cmd_id = buffer_read(buffer, buffer_u32);
         entities = buffer_read(buffer, buffer_u32);
 
-        update_data = 0;
+        // Destroy lists in list
+        ds_list_clear(update_data);
+        
+        // Add data into
         for (var i = 0; i &lt; entities; i++)
         {
-            update_data[i, 0] = buffer_read(buffer, buffer_u32); // object_index
-            update_data[i, 1] = buffer_read(buffer, buffer_u32); // id
-            update_data[i, 2] = buffer_read(buffer, buffer_u16); // x
-            update_data[i, 3] = buffer_read(buffer, buffer_u16); // y
-            update_data[i, 4] = buffer_read(buffer, buffer_u16); // image_angle
-            update_data[i, 5] = buffer_read(buffer, buffer_u32); // image_blend
-            update_data[i, 6] = buffer_read(buffer, buffer_u8); // player_number
+            // Read Entity Data
+            var update_entity = ds_list_create();
+            ds_list_add(update_entity, buffer_read(buffer, buffer_u32)); // object_index
+            ds_list_add(update_entity, buffer_read(buffer, buffer_u32)); // id
+            ds_list_add(update_entity, buffer_read(buffer, buffer_u16)); // x
+            ds_list_add(update_entity, buffer_read(buffer, buffer_u16)); // y
+            ds_list_add(update_entity, buffer_read(buffer, buffer_u16)); // image_angle
+            ds_list_add(update_entity, buffer_read(buffer, buffer_u32)); // image_blend
+            ds_list_add(update_entity, buffer_read(buffer, buffer_u8)); // player_number
+            
+            // Read Custom Entity Data (if any)
+            var custom_variables = buffer_read(buffer, buffer_u8);
+            for (var j = 0; j &lt; custom_variables; j++)
+                ds_list_add(update_entity, buffer_read(buffer, buffer_u32)); // custom
+            
+            // Add data to update_data
+            ds_list_add(update_data, update_entity);
         }
     }
 }
@@ -615,19 +620,16 @@ if (client == eventid &amp;&amp; command == CMD_LATENCY)
 if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UPDATE)
 {
     // Get Client Player Instance Offset in Update List
-    var offset = -1;
+    var update_entity = -1;
     for (var i = 0; i &lt; entities; i++)
     {
-        if (obj_server_player == update_data[i, 0])
-        {
-            if (player_number == update_data[i, 6])
-            {
-                offset = i;
+        update_entity = ds_list_find_value(update_data, i);
+        if (obj_server_player == ds_list_find_value(update_entity, 0))
+            if (player_number == ds_list_find_value(update_entity, 6))
                 break;
-            }
-        }
+        update_entity = -1;
     }
-    if (offset &lt; 0) exit; // No Client Player Found!
+    if (update_entity &lt; 0) exit; // No Client Player Found!
         
     // Compare with Prediction
     if (ds_queue_size(predict_history) &gt; 0 &amp;&amp; last_cmd_id &gt; 0)
@@ -645,8 +647,8 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
         {            
             // Get Variables of Client Player we need to verify predictions
             var incoming = 0;
-            incoming[0] = update_data[i, 2];
-            incoming[1] = update_data[i, 3];
+            incoming[0] = ds_list_find_value(update_entity, 2);
+            incoming[1] = ds_list_find_value(update_entity, 3);
             var incoming_size = array_length_1d(incoming);
             
             // Check Prediction vs Received
@@ -683,8 +685,8 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
     if (ds_queue_size(predict_history) &gt; 0)
     {
         var recent_list = ds_queue_tail(predict_history);
-        update_data[i, 2] = ds_list_find_value(recent_list, 1); // x
-        update_data[i, 3] = ds_list_find_value(recent_list, 2); // y
+        ds_list_replace(update_entity, 2, ds_list_find_value(recent_list, 1)); // x
+        ds_list_replace(update_entity, 3, ds_list_find_value(recent_list, 2)); // y
     }
 }
 </string>
@@ -712,8 +714,8 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
 if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == CMD_UPDATE)
 { 
     var current_sprites = ds_list_create();
-    ds_list_add(current_sprites, current_time);
-    ds_list_add(current_sprites, update_data);
+    ds_list_copy(current_sprites, update_data);
+    ds_list_insert(current_sprites, 0, current_time);
     ds_queue_enqueue(packet_history, current_sprites);
 }
 </string>
@@ -746,8 +748,9 @@ if (client == eventid &amp;&amp; command == CMD_UPDATE)
     var i = 0;
     for (var i = 0; i &lt; entities; i++)
     {
-        var server_type = update_data[i, 0];
-        var server_id = update_data[i, 1];
+        var incoming_list = ds_list_find_value(update_data, i);
+        var server_type = ds_list_find_value(incoming_list, 0);
+        var server_id = ds_list_find_value(incoming_list, 1);
 
         // Search for Entity
         var found_entity = false;
@@ -770,7 +773,7 @@ if (client == eventid &amp;&amp; command == CMD_UPDATE)
 
             entity = instance_create(0, 0, obj_type);
             entity.server_id = server_id;
-            entity.number = update_data[i, 6];
+            entity.number = ds_list_find_value(incoming_list, 6);
             ds_list_add(entity_list, entity);
             
             // Show after entity interpolation started
@@ -779,10 +782,10 @@ if (client == eventid &amp;&amp; command == CMD_UPDATE)
         }
         
         // Update entity
-        entity.x = update_data[i, 2];
-        entity.y = update_data[i, 3];
-        entity.image_angle = update_data[i, 4];
-        entity.image_blend = update_data[i, 5];
+        entity.x = ds_list_find_value(incoming_list, 2);
+        entity.y = ds_list_find_value(incoming_list, 3);
+        entity.image_angle = ds_list_find_value(incoming_list, 4);
+        entity.image_blend = ds_list_find_value(incoming_list, 5);
         ds_list_add(sync_list, entity.server_id);
     }
     
