@@ -20,6 +20,7 @@
   <paths name="paths"/>
   <scripts name="scripts">
     <script>scripts\scr_log.gml</script>
+    <script>scripts\scr_list_to_json.gml</script>
   </scripts>
   <fonts name="fonts">
     <font>fonts\fnt_log</font>
