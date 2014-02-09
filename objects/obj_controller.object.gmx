@@ -28,6 +28,15 @@
             <string>globalvar ip;
 ip = "127.0.0.1";
 
+// Packet Send Speed (in ms)
+packet_rate = 100;
+last_update = 0;
+
+key_up = false;
+key_down = false;
+key_left = false;
+key_right = false;
+
 if (!instance_exists(obj_log_panel))
     instance_create(448, 0, obj_log_panel);
 </string>

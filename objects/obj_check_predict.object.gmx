@@ -52,11 +52,12 @@ label = "Input Prediction";
             <string>event_inherited();
 
 if (instance_exists(obj_client))
+{
     with (obj_client)
     {
         is_input_predicted = other.is_checked;
-        ds_queue_clear(predict_history);
     }
+}
 </string>
           </argument>
         </arguments>

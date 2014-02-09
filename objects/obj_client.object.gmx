@@ -39,6 +39,8 @@ update_data = ds_list_create();
 sync_list = ds_list_create();
 
 command_buffer = buffer_create(256, buffer_grow, 1);
+server_tick = 0;
+input_id = 0;
 last_update = 0;
 update_rate = 0;
 
@@ -46,9 +48,7 @@ latency = 0;
 latency_interval = ceil(1000 / room_speed);
 alarm[0] = latency_interval;
 
-shooting_mode = false;
-
-scr_log("Client Created")
+scr_log("Client Created");
 </string>
           </argument>
         </arguments>
@@ -98,8 +98,10 @@ past_packet = ds_list_create();
             <string>/// Input Prediction
 
 is_input_predicted = false;
-cmd_id = 0;
-predict_history = ds_queue_create();
+predict_history = ds_list_create();
+input_steps = 0;
+update_input_id = 0;
+update_input_steps = 0;
 </string>
           </argument>
         </arguments>
@@ -202,16 +204,32 @@ alarm[0] = latency_interval;
             <kind>1</kind>
             <string>/// How many keys are pressed?
 
+input_steps++;
 var input_count = 0;
 
-if (keyboard_check(vk_up) || keyboard_check(ord('W'))) input_count++;
-if (keyboard_check(vk_left) || keyboard_check(ord('A'))) input_count++;
-if (keyboard_check(vk_down) || keyboard_check(ord('S'))) input_count++;
-if (keyboard_check(vk_right) || keyboard_check(ord('D'))) input_count++;
-if (device_mouse_check_button_pressed(0, mb_left) &amp;&amp; shooting_mode) input_count++;
+if (keyboard_check_pressed(vk_up)) input_count++;
+if (keyboard_check_pressed(vk_down)) input_count++;
+if (keyboard_check_pressed(vk_left)) input_count++;
+if (keyboard_check_pressed(vk_right)) input_count++;
+if (keyboard_check_pressed(ord('W'))) input_count++;
+if (keyboard_check_pressed(ord('A'))) input_count++;
+if (keyboard_check_pressed(ord('S'))) input_count++;
+if (keyboard_check_pressed(ord('D'))) input_count++;
+
+if (keyboard_check_released(vk_up)) input_count++;
+if (keyboard_check_released(vk_down)) input_count++;
+if (keyboard_check_released(vk_left)) input_count++;
+if (keyboard_check_released(vk_right)) input_count++;
+if (keyboard_check_released(ord('W'))) input_count++;
+if (keyboard_check_released(ord('A'))) input_count++;
+if (keyboard_check_released(ord('S'))) input_count++;
+if (keyboard_check_released(ord('D'))) input_count++;
 
 if (input_count &gt; 0)
-    cmd_id++;
+{
+    input_id++;
+    input_steps = 0;
+}
 </string>
           </argument>
         </arguments>
@@ -232,69 +250,323 @@ if (input_count &gt; 0)
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Input Prediction
+            <string>/// Send Keys (if pressed)
+
+if (input_count &gt; 0)
+{
+    buffer_seek(command_buffer, buffer_seek_start, 0);
+    buffer_write(command_buffer, buffer_u8, CMD_INPUT);
+    buffer_write(command_buffer, buffer_u16, input_id);
+    buffer_write(command_buffer, buffer_u8, input_count);
+
+    // PRESSED KEYS
+    if (keyboard_check_pressed(vk_left) || keyboard_check_pressed(ord('A')))
+    {
+        buffer_write(command_buffer, buffer_s16, vk_left);
+        buffer_write(command_buffer, buffer_bool, true);
+    }
+    if (keyboard_check_pressed(vk_right) || keyboard_check_pressed(ord('D')))
+    {
+        buffer_write(command_buffer, buffer_s16, vk_right);
+        buffer_write(command_buffer, buffer_bool, true);
+    }
+    if (keyboard_check_pressed(vk_up) || keyboard_check_pressed(ord('W')))
+    {
+        buffer_write(command_buffer, buffer_s16, vk_up);
+        buffer_write(command_buffer, buffer_bool, true);
+    }
+    if (keyboard_check_pressed(vk_down) || keyboard_check_pressed(ord('S')))
+    {
+        buffer_write(command_buffer, buffer_s16, vk_down);
+        buffer_write(command_buffer, buffer_bool, true);
+    }
+    
+    // RELEASED KEYS
+    if (keyboard_check_released(vk_left) || keyboard_check_released(ord('A')))
+    {
+        buffer_write(command_buffer, buffer_s16, vk_left);
+        buffer_write(command_buffer, buffer_bool, false);
+    }
+    if (keyboard_check_released(vk_right) || keyboard_check_released(ord('D')))
+    {
+        buffer_write(command_buffer, buffer_s16, vk_right);
+        buffer_write(command_buffer, buffer_bool, false);
+    }
+    if (keyboard_check_released(vk_up) || keyboard_check_released(ord('W')))
+    {
+        buffer_write(command_buffer, buffer_s16, vk_up);
+        buffer_write(command_buffer, buffer_bool, false);
+    }
+    if (keyboard_check_released(vk_down) || keyboard_check_released(ord('S')))
+    {
+        buffer_write(command_buffer, buffer_s16, vk_down);
+        buffer_write(command_buffer, buffer_bool, false);
+    }
+    
+    var buffer_size = buffer_tell(command_buffer)
+    network_send_packet(client, command_buffer, buffer_size);
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Add Instances
+
+for (var i = 0; i &lt; entities; i++)
+{
+    var incoming_list = ds_list_find_value(update_data, i);
+    var server_type = ds_list_find_value(incoming_list, 0);
+    var server_id = ds_list_find_value(incoming_list, 1);
+    var server_x = ds_list_find_value(incoming_list, 2);
+    var server_y = ds_list_find_value(incoming_list, 3);
+    var server_number = ds_list_find_value(incoming_list, 6);
+
+    // Search for Entity
+    var entity = -1;
+    for (var j = 0; j &lt; ds_list_size(entity_list); j++)
+    {
+        entity = ds_list_find_value(entity_list, j);
+        if (entity.server_id == server_id)
+            break;
+        entity = -1;
+    }        
+    // If Entity not found, Add Entity
+    if (entity &lt; 0)
+    {
+        entity = instance_create(server_x, server_y, server_type);
+        entity.server_id = server_id;
+        entity.number = server_number
+        ds_list_add(entity_list, entity);
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Remove Instances
+
+// Get Everything that was in incoming packet
+ds_list_clear(sync_list);
+for (var i = 0; i &lt; entities; i++)
+{
+    var incoming_list = ds_list_find_value(update_data, i);
+    var server_id = ds_list_find_value(incoming_list, 1);
+
+    // Search for Entity
+    var entity = -1;
+    for (var j = 0; j &lt; ds_list_size(entity_list); j++)
+    {
+        entity = ds_list_find_value(entity_list, j);
+        if (entity.server_id == server_id)
+            break;
+        entity = -1;
+    }        
+    ds_list_add(sync_list, entity);
+}
+
+// Remove Entities
+for (var i = 0; i &lt; ds_list_size(entity_list); i++)
+{
+    var entity = ds_list_find_value(entity_list, i);
+
+    // If Entity was not updated, destroy it
+    if (ds_list_find_index(sync_list, entity) == -1)
+    {
+        ds_list_delete(entity_list, i);
+        with (entity) instance_destroy();
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Update Instances
+
+for (var i = 0; i &lt; entities; i++)
+{
+    var incoming_list = ds_list_find_value(update_data, i);
+    var server_type = ds_list_find_value(incoming_list, 0);
+    var server_id = ds_list_find_value(incoming_list, 1);
+    var server_x = ds_list_find_value(incoming_list, 2);
+    var server_y = ds_list_find_value(incoming_list, 3);
+    var server_image_angle = ds_list_find_value(incoming_list, 4);
+    var server_image_blend = ds_list_find_value(incoming_list, 5);
+
+    // Search for Entity
+    var entity = -1;
+    for (var j = 0; j &lt; ds_list_size(entity_list); j++)
+    {
+        entity = ds_list_find_value(entity_list, j);
+        if (entity.server_id == server_id)
+            break;
+        entity = -1;
+    }
+    
+    if (!(is_input_predicted &amp;&amp; entity.number == player_number))
+    {
+        // Update entity
+        entity.x = server_x;
+        entity.y = server_y;
+        entity.image_angle = server_image_angle;
+        entity.image_blend = server_image_blend;
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Input Prediction - Move Entity
+
+if (input_count &gt; 0)
+{
+    for (var i = 0; i &lt; ds_list_size(entity_list); i++)
+    {
+        var entity = ds_list_find_value(entity_list, i);
+        if (entity.object_index == obj_player &amp;&amp; entity.number == player_number)
+        {
+            if (is_input_predicted)
+            {
+                // PRESSED KEYS
+                if (keyboard_check_pressed(vk_left) || keyboard_check_pressed(ord('A')))
+                    entity.key_left = true;
+                if (keyboard_check_pressed(vk_right) || keyboard_check_pressed(ord('D')))
+                    entity.key_right = true;
+                if (keyboard_check_pressed(vk_up) || keyboard_check_pressed(ord('W')))
+                    entity.key_up = true;
+                if (keyboard_check_pressed(vk_down) || keyboard_check_pressed(ord('S')))
+                    entity.key_down = true;
+                
+                // RELEASED KEYS
+                if (keyboard_check_released(vk_left) || keyboard_check_released(ord('A')))
+                    entity.key_left = false;
+                if (keyboard_check_released(vk_right) || keyboard_check_released(ord('D')))
+                    entity.key_right = false;
+                if (keyboard_check_released(vk_up) || keyboard_check_released(ord('W')))
+                    entity.key_up = false;
+                if (keyboard_check_released(vk_down) || keyboard_check_released(ord('S')))
+                    entity.key_down = false;
+            }
+            else
+            {
+                entity.key_left = false;
+                entity.key_right = false;
+                entity.key_up = false;
+                entity.key_down = false;
+            }
+        }   
+    }
+}
+</string>
+          </argument>
+        </arguments>
+      </action>
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Input Prediction - Store Value
 
 if (is_input_predicted)
 {
-    for (var i = 0; i &lt; entities; i++)
+    var prediction = ds_list_create();
+    ds_list_add(prediction, input_id);
+    ds_list_add(prediction, input_steps);
+    
+    for (var i = 0; i &lt; ds_list_size(entity_list); i++)
     {
-        var entity = ds_list_find_value(entity_list, i);        
-        
-        if (entity.object_index == obj_client_player
-        &amp;&amp; entity.number = player_number)
+        var entity = ds_list_find_value(entity_list, i);
+        if (entity.object_index == obj_player &amp;&amp; entity.number == player_number)
         {
-            // Update player to most recent prediction
-            if (ds_queue_size(predict_history) &gt; 0)
-            {
-                var latest_prediction = ds_queue_tail(predict_history);
-                
-                var predicted_entity = -1;
-                for (var j = 1; j &lt; ds_list_size(latest_prediction); j++)
-                {
-                    predicted_entity = ds_list_find_value(latest_prediction, j);
-                    if (entity.server_id == ds_list_find_value(predicted_entity, 1))
-                        break;
-                    predicted_entity = -1;
-                }
-                
-                if (predicted_entity &gt;= 0)
-                {
-                    entity.x = ds_list_find_value(predicted_entity, 2);
-                    entity.y = ds_list_find_value(predicted_entity, 3);
-                }
-            }
-            
-            // Add Prediction
-            if (input_count &gt; 0)
-            {
-                var prediction = ds_list_create();
-                ds_list_add(prediction, cmd_id);
-                
-                // Update Player
-                if (keyboard_check(vk_left) || keyboard_check(ord('A')))
-                    with (entity) event_perform(ev_other, ev_user0); // Left Command
-                if (keyboard_check(vk_right) || keyboard_check(ord('D')))
-                    with (entity) event_perform(ev_other, ev_user1); // Right Command
-                if (keyboard_check(vk_up) || keyboard_check(ord('W')))
-                    with (entity) event_perform(ev_other, ev_user2); // Up Command
-                if (keyboard_check(vk_down) || keyboard_check(ord('S')))
-                    with (entity) event_perform(ev_other, ev_user3); // Down Command
-                
-                // Queue Prediction
-                var entity_prediction = ds_list_create();
-                ds_list_add(entity_prediction, entity.object_index);
-                ds_list_add(entity_prediction, entity.server_id);
-                ds_list_add(entity_prediction, entity.x);
-                ds_list_add(entity_prediction, entity.y);
-                ds_list_add(entity_prediction, entity.image_blend);
-                ds_list_add(entity_prediction, entity.image_angle);
-                ds_list_add(entity_prediction, entity.number);
-                ds_list_add(prediction, entity_prediction);
-            
-                ds_queue_enqueue(predict_history, prediction);
-            }       
-        }
+            var entity_values = ds_list_create();
+            ds_list_add(entity_values, entity.object_index);
+            ds_list_add(entity_values, entity.server_id);
+            ds_list_add(entity_values, entity.x);
+            ds_list_add(entity_values, entity.y);
+            ds_list_add(entity_values, entity.image_angle);
+            ds_list_add(entity_values, entity.image_blend);
+            ds_list_add(entity_values, entity.number);
+            ds_list_add(entity_values, 0);
+            ds_list_add(prediction, entity_values);
+        }   
     }
+    
+    ds_list_add(predict_history, prediction);
 }
 </string>
           </argument>
@@ -414,63 +686,13 @@ else if (!is_entity_interpolation)
             <kind>1</kind>
             <string>/// Soldier Step
 
-if (is_soldier_enabled)
-{
-    obj_soldier.visible = true;
-    obj_client_player.visible = false;
-}
-else
-{
-    obj_soldier.visible = false;
-    obj_client_player.visible = true;
-}
-</string>
-          </argument>
-        </arguments>
-      </action>
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Send Keys (if pressed)
+obj_soldier.visible = is_soldier_enabled;
 
-if (input_count &gt; 0)
+for (var i = 0; i &lt; ds_list_size(entity_list); i++)
 {
-    buffer_seek(command_buffer, buffer_seek_start, 0);
-    buffer_write(command_buffer, buffer_u8, CMD_INPUT);
-    buffer_write(command_buffer, buffer_u32, cmd_id);
-    buffer_write(command_buffer, buffer_u8, input_count);
-
-    if (keyboard_check(vk_left) || keyboard_check(ord('A')))
-        buffer_write(command_buffer, buffer_s16, vk_left);
-    if (keyboard_check(vk_right) || keyboard_check(ord('D')))
-        buffer_write(command_buffer, buffer_s16, vk_right);
-    if (keyboard_check(vk_up) || keyboard_check(ord('W')))
-        buffer_write(command_buffer, buffer_s16, vk_up);
-    if (keyboard_check(vk_down) || keyboard_check(ord('S')))
-        buffer_write(command_buffer, buffer_s16, vk_down);
-    if (device_mouse_check_button_pressed(0, mb_left) &amp;&amp; shooting_mode)
-    {
-        buffer_write(command_buffer, buffer_s16, mb_left);
-        buffer_write(command_buffer, buffer_s16, mouse_x);
-        buffer_write(command_buffer, buffer_s16, mouse_y);
-    }
-    
-    
-    var buffer_size = buffer_tell(command_buffer)
-    network_send_packet(client, command_buffer, buffer_size);
+    var entity = ds_list_find_value(entity_list, i);
+    if (entity.object_index == obj_player)
+        entity.visible = !is_soldier_enabled;
 }
 </string>
           </argument>
@@ -533,10 +755,13 @@ if (client == eventid)
     {
         update_rate = current_time - last_update;
         last_update = current_time;
+        tick_update = current_time;
         
         // Read Header Information
         player_number = buffer_read(buffer, buffer_u8);
-        var last_cmd_id = buffer_read(buffer, buffer_u32);
+        server_tick = buffer_read(buffer, buffer_u32);
+        update_input_id = buffer_read(buffer, buffer_u16);
+        update_input_steps = buffer_read(buffer, buffer_u16);
         entities = buffer_read(buffer, buffer_u32);
 
         // Destroy lists in list
@@ -641,71 +866,92 @@ if (client == eventid &amp;&amp; command == CMD_LATENCY)
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Input Prediction
+            <string>/// Input Prediction - Check Predictions
 
 if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UPDATE)
-{       
-    // Compare with Prediction
-    if (ds_queue_size(predict_history) &gt; 0 &amp;&amp; last_cmd_id &gt; 0)
+{
+    // Remove all items before update_input_id
+    var head = ds_list_find_value(predict_history, 0);
+    while (ds_list_size(predict_history) &gt; 0
+    &amp;&amp; ds_list_find_value(head, 0) &lt; update_input_id)
     {
-        // Clear queue until prediction time (or clear completely)
-        var head_list = ds_queue_head(predict_history)
-        while (ds_queue_size(predict_history) &gt; 0 &amp;&amp; ds_list_find_value(head_list, 0) &lt; last_cmd_id)
-        {
-            ds_queue_dequeue(predict_history);
-            ds_list_destroy(head_list);
-            head_list = ds_queue_head(predict_history);
-        }
+        ds_list_delete(predict_history, 0);
+        head = ds_list_find_value(predict_history, 0);
+    }
+    // Remove all items before update_input_steps
+    while (ds_list_size(predict_history) &gt; 0
+    &amp;&amp; ds_list_find_value(head, 1) &lt; update_input_steps)
+    {
+        ds_list_delete(predict_history, 0);
+        head = ds_list_find_value(predict_history, 0);
+    }
+    if (!ds_exists(head, ds_type_list)) exit;
+    
+    // Get entity data
+    var predicted = -1;
+    for (var i = 2; i &lt; ds_list_size(head); i++)
+    {
+        predicted = ds_list_find_value(head, i);
+        if (ds_list_find_value(predicted, 0) == obj_player
+        &amp;&amp; ds_list_find_value(predicted, 6) == player_number)
+            break;
+        predicted = -1;
+    }
+    if (predicted &lt; 0) exit;
+    
+    // Get updated data
+    var updated = -1;
+    for (var i = 0; i &lt; ds_list_size(update_data); i++)
+    {
+        updated = ds_list_find_value(update_data, i);
+        if (ds_list_find_value(updated, 0) == obj_player
+        &amp;&amp; ds_list_find_value(updated, 6) == player_number)
+            break;
+        updated = -1;
+    }
+    if (updated &lt; 0) exit;
+    
+    var entity = -1;
+    for (var i = 0; i &lt; ds_list_size(entity_list); i++)
+    {
+        entity = ds_list_find_value(entity_list, i);
+        if (ds_list_find_value(predicted, 1) == entity.server_id)
+            break;
+        entity = -1;
+    }
+    // Compare predicted to update
+    for (var i = 2; i &lt; 4; i++)
+    {
+        var updated_value = ds_list_find_value(updated, i);
+        var predicted_value = ds_list_find_value(predicted, i);
+        var predicted_id = ds_list_find_value(predicted, 1);
+        var delta = updated_value - predicted_value;
         
-        // Run following if we find exact prediction
-        if (ds_list_find_value(head_list, 0) == last_cmd_id)
+        if (abs(delta) &gt; 2)
         {
-            ds_queue_dequeue(predict_history);
-        
-            // With all entities that were predicted
-            for (var i = 1; i &lt; ds_list_size(head_list); i++)
+            scr_log("Pred Error u" + string(updated_value) + " p" + string(predicted_value));
+            
+            // Fix all Predicted Values
+            for (var j = 0; j &lt; ds_list_size(predict_history); j++)
             {
-                var predicted_list = ds_list_find_value(head_list, i);
-                var received_list = -1;
-                for (var j = 0; j &lt; ds_list_size(update_data); j++)
+                var fix_list = ds_list_find_value(predict_history, j);
+                for (var k = 2; k &lt; ds_list_size(fix_list); k++)
                 {
-                    var received_list = ds_list_find_value(update_data, j);
-                    if (ds_list_find_value(received_list, 1) == ds_list_find_value(predicted_list, 1))
-                        break;
-                    received_list = -1;
-                }
-                if (received_list &lt; 0) continue;
-                          
-                // Check only X and Y values for now
-                for (var j = 2; j &lt; 4; j++)
-                {
-                    received = ds_list_find_value(received_list, j);
-                    predicted = ds_list_find_value(predicted_list, j);
-                    
-                    // Prediction Error
-                    if (received != predicted)
+                    var fix_predicted = ds_list_find_value(fix_list, k);
+                    if (ds_list_find_value(fix_predicted, 1) == predicted_id)
                     {
-                        scr_log("Pred Err id" + string(last_cmd_id) + " recv" + string(received) + " pred" + string(predicted));
-                        // Adjust error for current and future predictions
-                        var delta_value = received - predicted;
-
-                        // Fix future predictions
-                        for (var k = 0; k &lt; ds_queue_size(predict_history); k++)
-                        {
-                            var new_prediction = ds_queue_dequeue(predict_history);
-                            for (var l = 1; l &lt; ds_list_size(new_prediction); l++)
-                            {
-                                var new_list = ds_list_find_value(new_prediction, l);
-                                if (ds_list_find_value(new_list, 1) == ds_list_find_value(predicted_list, 1))
-                                {
-                                    var new_value = ds_list_find_value(new_list, j) + delta_value;
-                                    ds_list_replace(new_list, j, new_value);
-                                }
-                            }
-                            ds_queue_enqueue(predict_history, new_prediction);
-                        }
+                        var new_value = ds_list_find_value(fix_predicted, i);
+                        new_value += delta;
+                        ds_list_replace(fix_predicted, i, new_value);
+                        continue;
                     }
                 }
+            }
+            
+            if (entity &gt; 0)
+            {
+                if (i == 2) entity.x += delta;
+                if (i == 3) entity.y += delta;
             }
         }
     }
@@ -742,8 +988,8 @@ if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == C
         var entity_data = ds_list_find_value(update_data, i);
         
         // Do not copy to interpolation list under these conditions
-        if (ds_list_find_value(entity_data, 0) == obj_bullet)
-            continue;
+        //if (ds_list_find_value(entity_data, 0) == obj_bullet)
+        //    continue;
         if (ds_list_find_value(entity_data, 6) == player_number)
             continue;
         
@@ -757,96 +1003,6 @@ if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == C
     }
 
     ds_queue_enqueue(packet_history, interpol_list);
-}
-</string>
-          </argument>
-        </arguments>
-      </action>
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Update/Add/Remove Instances
-
-if (client == eventid &amp;&amp; command == CMD_UPDATE)
-{
-    // Update/Add Instances
-    ds_list_clear(sync_list);
-    for (var i = 0; i &lt; entities; i++)
-    {
-        var incoming_list = ds_list_find_value(update_data, i);
-        var server_type = ds_list_find_value(incoming_list, 0);
-        var server_id = ds_list_find_value(incoming_list, 1);
-        var server_x = ds_list_find_value(incoming_list, 2);
-        var server_y = ds_list_find_value(incoming_list, 3);
-        var server_image_angle = ds_list_find_value(incoming_list, 4);
-        var server_image_blend = ds_list_find_value(incoming_list, 5);
-        var server_number = ds_list_find_value(incoming_list, 6);
-    
-        // Search for Entity
-        var entity = -1;
-        for (var j = 0; j &lt; ds_list_size(entity_list); j++)
-        {
-            entity = ds_list_find_value(entity_list, j);
-            if (entity.server_id == server_id)
-                break;
-            entity = -1;
-        }        
-        // If Entity not found, Add Entity
-        if (entity &lt; 0)
-        {
-            var obj_type = -1;
-            if (server_type == obj_server_player) obj_type = obj_client_player;
-            else if (server_type == obj_bullet) obj_type = obj_bullet;
-            else continue;
-    
-            entity = instance_create(server_x, server_y, obj_type);
-            entity.server_id = server_id;
-            entity.number = server_number
-            ds_list_add(entity_list, entity);
-            
-            if (server_type == obj_bullet) show_debug_message("Bullet Created!");
-            
-            if (server_type == obj_bullet)
-            {
-                entity.alarm[0] = -1; // Don't destroy client bullets automatically
-                entity.target_x = ds_list_find_value(incoming_list, 7);
-                entity.target_y = ds_list_find_value(incoming_list, 8);
-            }
-        }
-        
-        // Update entity
-        entity.x = server_x;
-        entity.y = server_y;
-        entity.image_angle = server_image_angle;
-        entity.image_blend = server_image_blend;
-        ds_list_add(sync_list, entity);
-    }
-    
-    // Remove Entities
-    for (var i = 0; i &lt; ds_list_size(entity_list); i++)
-    {
-        var entity = ds_list_find_value(entity_list, i);
-    
-        // If Entity was not updated, destroy it
-        if (ds_list_find_index(sync_list, entity) == -1)
-        {
-            ds_list_delete(entity_list, i);
-            with (entity) instance_destroy();
-        }
-    }
 }
 </string>
           </argument>
@@ -944,36 +1100,39 @@ else
 
 var index = 0;
 var str = "";
-str += "Player Num: " + string(player_number);
-str += "#Players: " + string(entities);
 
-for (var i = 0; i &lt; instance_number(obj_client_player); i++)
+str += "Server Tick: " + string(server_tick);
+str += "#Input ID: " + string(input_id);
+str += "#Update Rate: " + string(update_rate);
+str += "#Update Input ID: " + string(update_input_id);
+str += "#Update Input Steps: " + string(update_input_steps);
+str += "#Player Num: " + string(player_number);
+str += "#Latency: " + string(latency);
+str += "#Entities: " + string(entities);
+
+for (var i = 0; i &lt; ds_list_size(update_data); i++)
 {
-    var _x, _y, _blend, instance;
-    var player = instance_find(obj_client_player, i);
-    _x = player.x;
-    _y = player.y;
-    _blend = player.image_blend;
-
-    str += "#Player[" + string(player.number) + "].obj_id: " + string(player.object_index);
-    str += "#Player[" + string(player.number) + "].id: " + string(player.id);
-    str += "#Player[" + string(player.number) + "].x: " + string(_x);
-    str += "#Player[" + string(player.number) + "].y: " + string(_y);
-    str += "#Player[" + string(player.number) + "].color: " + string(_blend);
-
-    draw_set_color(c_white);
-    if (player.number == player_number) draw_set_color(c_navy);
-    draw_set_valign(fa_top);    
-    draw_set_halign(fa_center);
-    draw_text(_x + 8, _y - 20, "Player " + string(player.number));
+    var entity = ds_list_find_value(update_data, i);
+    var si = string(i);
+    str += "#Entity[" + si + "].object_index: " + string(ds_list_find_value(entity, 0));
+    str += "#Entity[" + si + "].server_id: " + string(ds_list_find_value(entity, 1));
+    str += "#Entity[" + si + "].x: " + string(ds_list_find_value(entity, 2));
+    str += "#Entity[" + si + "].y: " + string(ds_list_find_value(entity, 3));
+    str += "#Entity[" + si + "].image_angle.: " + string(ds_list_find_value(entity, 4));
+    str += "#Entity[" + si + "].image_blend: " + string(ds_list_find_value(entity, 5));
+    str += "#Entity[" + si + "].number: " + string(ds_list_find_value(entity, 6));
+    str += "#Entity[" + si + "].num_custom: " + string(ds_list_find_value(entity, 7));
+    
+    for (var j = 0; j &lt; ds_list_find_value(entity, 7); j++)
+    {
+        var sj = string(j);
+        str += "#Entity[" + si + "].custom" + sk + ": " + ds_list_find_value(entity, 8 + j);
+    }
 }
 
 draw_set_color(c_white);
 draw_set_halign(fa_left);
 draw_set_valign(fa_top);
-str += "#Latency: " + string(latency);
-str += "#Update Rate: " + string(update_rate);
-str += "#Interpolation: " + string(client_interpolation);
 draw_text(0, 0, str);
 </string>
           </argument>
@@ -999,12 +1158,14 @@ draw_text(0, 0, str);
             <kind>1</kind>
             <string>/// Toggle Shooting Mode
 
+/*
 shooting_mode = !shooting_mode;
 
 if (shooting_mode)
     scr_log("Shooting Mode is ON");
 else
     scr_log("Shooting Mode is OFF");
+*/
 </string>
           </argument>
         </arguments>

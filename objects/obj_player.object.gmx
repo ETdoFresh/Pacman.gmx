@@ -5,7 +5,7 @@
   <visible>-1</visible>
   <depth>0</depth>
   <persistent>-1</persistent>
-  <parentName>&lt;undefined&gt;</parentName>
+  <parentName>obj_network_entity</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
     <event eventtype="0" enumb="0">
@@ -27,16 +27,24 @@
             <kind>1</kind>
             <string>/// Initialize Player
 
-number = -1;
-socket = -1;
+event_inherited();
 
-move_speed = 2;
+move_speed = 120 / room_speed; // pixels per second / room_speed
+
+key_up = false;
+key_down = false;
+key_left = false;
+key_right = false;
+
+soldier = instance_create(x, y, obj_soldier);
+soldier.visible = false;
+soldier.target = id;
 </string>
           </argument>
         </arguments>
       </action>
     </event>
-    <event eventtype="7" enumb="13">
+    <event eventtype="1" enumb="0">
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -53,14 +61,16 @@ move_speed = 2;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Receive Down Command
-y += move_speed;
+            <string>/// Also Destroy Soldier
+
+with (soldier)
+    instance_destroy();
 </string>
           </argument>
         </arguments>
       </action>
     </event>
-    <event eventtype="7" enumb="12">
+    <event eventtype="3" enumb="0">
       <action>
         <libid>1</libid>
         <id>603</id>
@@ -77,59 +87,24 @@ y += move_speed;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Receive Up Command
+            <string>/// Move Player
 
-y -= move_speed;
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="7" enumb="11">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Receive Right Command
+input_steps++;
 
-x += move_speed;
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="7" enumb="10">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Receive Left Command
+if (key_up) y -= move_speed;
+if (key_down) y += move_speed;
+if (key_left) x -= move_speed;
+if (key_right) x += move_speed;
 
-x -= move_speed;
+// Check Limits
+if (x &lt; 0)
+    x = 0;
+if (y &lt; 0)
+    y = 0;
+if (x &gt; obj_log_panel.x - sprite_width)
+    x = obj_log_panel.x - sprite_width;
+if (y &gt; room_height - sprite_height)
+    y = room_height - sprite_height;
 </string>
           </argument>
         </arguments>

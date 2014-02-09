@@ -5,7 +5,7 @@
   <visible>-1</visible>
   <depth>0</depth>
   <persistent>-1</persistent>
-  <parentName>obj_player</parentName>
+  <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
     <event eventtype="0" enumb="0">
@@ -25,40 +25,25 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Initialize Client Player
+            <string>/// Initialize Network Entity
 
-event_inherited();
-
+socket = -1;
 server_id = -1;
-soldier = instance_create(x, y, obj_soldier);
-soldier.visible = false;
-soldier.target = id;
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="1" enumb="0">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Also Destroy Soldier
+number = -1;
+input_id = -1;
+input_steps = -1;
 
-with (soldier)
-    instance_destroy();
+// The packet structure for all network entities is
+
+// 0: object_index
+// 1: server_id
+// 2: x
+// 3: y
+// 4: image_angle
+// 5: image_blend
+// 6: number
+// 7: # of custom values
+// n: custom values
 </string>
           </argument>
         </arguments>
