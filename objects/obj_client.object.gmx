@@ -73,7 +73,7 @@ scr_log("Client Created");
 
 is_entity_interpolation = false;
 client_interpolation = 200;
-packet_history = ds_queue_create();
+packet_history = ds_list_create();
 past_packet = ds_list_create();
 </string>
           </argument>
@@ -225,6 +225,8 @@ if (keyboard_check_released(ord('A'))) input_count++;
 if (keyboard_check_released(ord('S'))) input_count++;
 if (keyboard_check_released(ord('D'))) input_count++;
 
+if (device_mouse_check_button_pressed(0, mb_left)) input_count++;
+
 if (input_count &gt; 0)
 {
     input_id++;
@@ -303,6 +305,14 @@ if (input_count &gt; 0)
         buffer_write(command_buffer, buffer_bool, false);
     }
     
+    if (device_mouse_check_button_pressed(0, mb_left))
+    {
+        buffer_write(command_buffer, buffer_s16, mb_left);
+        buffer_write(command_buffer, buffer_bool, true);
+        buffer_write(command_buffer, buffer_s16, mouse_x);
+        buffer_write(command_buffer, buffer_s16, mouse_y);
+    }
+    
     var buffer_size = buffer_tell(command_buffer)
     network_send_packet(client, command_buffer, buffer_size);
 }
@@ -335,6 +345,8 @@ for (var i = 0; i &lt; entities; i++)
     var server_id = ds_list_find_value(incoming_list, 1);
     var server_x = ds_list_find_value(incoming_list, 2);
     var server_y = ds_list_find_value(incoming_list, 3);
+    var server_angle = ds_list_find_value(incoming_list, 4);
+    var server_color = ds_list_find_value(incoming_list, 5);
     var server_number = ds_list_find_value(incoming_list, 6);
 
     // Search for Entity
@@ -352,7 +364,15 @@ for (var i = 0; i &lt; entities; i++)
         entity = instance_create(server_x, server_y, server_type);
         entity.server_id = server_id;
         entity.number = server_number
+        entity.image_angle = server_angle;
+        entity.image_blend = server_color;
         ds_list_add(entity_list, entity);
+        
+        if (server_type == obj_bullet)
+        {
+            entity.target_x = ds_list_find_value(incoming_list, 7);
+            entity.target_y = ds_list_find_value(incoming_list, 8);
+        }
     }
 }
 </string>
@@ -450,7 +470,10 @@ for (var i = 0; i &lt; entities; i++)
         entity = -1;
     }
     
-    if (!(is_input_predicted &amp;&amp; entity.number == player_number))
+
+    if (entity.object_index == obj_bullet) { } // No Update
+    else if (entity.number == player_number &amp;&amp; is_input_predicted) { }
+    else
     {
         // Update entity
         entity.x = server_x;
@@ -590,13 +613,13 @@ if (is_input_predicted)
             <kind>1</kind>
             <string>/// Entity Interpolation
 
-if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
+if (is_entity_interpolation &amp;&amp; ds_list_size(packet_history) &gt; 0)
 {
     var render_time = current_time - client_interpolation;
 
     // Past_packet is the packet before Render time. Head is the packet after or on Render time.
-    var head = ds_queue_head(packet_history);
-    while (ds_queue_size(packet_history) &gt; 0 &amp;&amp; ds_list_find_value(head, 0) &lt; render_time)
+    var head = ds_list_find_value(packet_history, 0);
+    while (ds_list_size(packet_history) &gt; 0 &amp;&amp; ds_list_find_value(head, 0) &lt; render_time)
     {
         // Destroy all sublist in past-packets and the list itself
         for (var i = 1; i &lt; ds_list_size(past_packet); i++)
@@ -604,15 +627,16 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
         ds_list_destroy(past_packet);
         
         // Update past_packet and head(packet)
-        past_packet = ds_queue_dequeue(packet_history);
-        head = ds_queue_head(packet_history);
+        past_packet = ds_list_find_value(packet_history, 0);
+        ds_list_delete(packet_history, 0);
+        head = ds_list_find_value(packet_history, 0);
     }
 
     var past_time = ds_list_find_value(past_packet, 0);
     var head_time = ds_list_find_value(head, 0);
 
     // Calculate Entity Variable Values between past_time and head_time
-    if (past_time &gt; 0 &amp;&amp; head_time &gt; 0 &amp;&amp; head_time != past_time)
+    if (past_time &gt; 0 &amp;&amp; ds_exists(head, ds_type_list) &amp;&amp; head_time != past_time)
     {
         // Calculate point of time between both times
         var t1 = render_time - past_time;
@@ -639,8 +663,9 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
             for (var j = 1; j &lt; ds_list_size(head); j++)
             {
                 head_entity = ds_list_find_value(head, j);
-                if (ds_list_find_value(head_entity, 1) == entity.server_id)
-                    break;
+                if (ds_exists(head_entity, ds_type_list))
+                    if (ds_list_find_value(head_entity, 1) == entity.server_id)
+                        break;
                 head_entity = -1;
             }
            
@@ -661,8 +686,10 @@ if (is_entity_interpolation &amp;&amp; ds_queue_size(packet_history) &gt; 0)
 }
 else if (!is_entity_interpolation)
 {
-    while (ds_queue_size(packet_history) &gt; 0)
-        ds_list_destroy(ds_queue_dequeue(packet_history));
+    for (var i = 0; i &lt; ds_list_size(packet_history); i++)
+        ds_list_destroy(ds_list_find_value(packet_history, i));
+
+    ds_list_clear(packet_history);
 }
 </string>
           </argument>
@@ -892,9 +919,10 @@ if (is_input_predicted &amp;&amp; client == eventid &amp;&amp; command == CMD_UP
     for (var i = 2; i &lt; ds_list_size(head); i++)
     {
         predicted = ds_list_find_value(head, i);
-        if (ds_list_find_value(predicted, 0) == obj_player
-        &amp;&amp; ds_list_find_value(predicted, 6) == player_number)
-            break;
+        if (ds_exists(predicted, ds_type_list))
+            if (ds_list_find_value(predicted, 0) == obj_player
+            &amp;&amp; ds_list_find_value(predicted, 6) == player_number)
+                break;
         predicted = -1;
     }
     if (predicted &lt; 0) exit;
@@ -988,8 +1016,8 @@ if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == C
         var entity_data = ds_list_find_value(update_data, i);
         
         // Do not copy to interpolation list under these conditions
-        //if (ds_list_find_value(entity_data, 0) == obj_bullet)
-        //    continue;
+        if (ds_list_find_value(entity_data, 0) == obj_bullet)
+            continue;
         if (ds_list_find_value(entity_data, 6) == player_number)
             continue;
         
@@ -1002,7 +1030,7 @@ if (is_entity_interpolation &amp;&amp; client == eventid &amp;&amp; command == C
         }
     }
 
-    ds_queue_enqueue(packet_history, interpol_list);
+    ds_list_add(packet_history, interpol_list);
 }
 </string>
           </argument>
@@ -1109,25 +1137,25 @@ str += "#Update Input Steps: " + string(update_input_steps);
 str += "#Player Num: " + string(player_number);
 str += "#Latency: " + string(latency);
 str += "#Entities: " + string(entities);
-
+str += "#-------------------------"
 for (var i = 0; i &lt; ds_list_size(update_data); i++)
 {
     var entity = ds_list_find_value(update_data, i);
     var si = string(i);
-    str += "#Entity[" + si + "].object_index: " + string(ds_list_find_value(entity, 0));
-    str += "#Entity[" + si + "].server_id: " + string(ds_list_find_value(entity, 1));
+    str += "#Entity[" + si + "].object: " + object_get_name(ds_list_find_value(entity, 0));
+    str += "#Entity[" + si + "].id: " + string(ds_list_find_value(entity, 1));
+    str += "#Entity[" + si + "].number: " + string(ds_list_find_value(entity, 6));
     str += "#Entity[" + si + "].x: " + string(ds_list_find_value(entity, 2));
     str += "#Entity[" + si + "].y: " + string(ds_list_find_value(entity, 3));
-    str += "#Entity[" + si + "].image_angle.: " + string(ds_list_find_value(entity, 4));
-    str += "#Entity[" + si + "].image_blend: " + string(ds_list_find_value(entity, 5));
-    str += "#Entity[" + si + "].number: " + string(ds_list_find_value(entity, 6));
-    str += "#Entity[" + si + "].num_custom: " + string(ds_list_find_value(entity, 7));
-    
-    for (var j = 0; j &lt; ds_list_find_value(entity, 7); j++)
+    str += "#Entity[" + si + "].image_angle: " + string(ds_list_find_value(entity, 4));
+    str += "#Entity[" + si + "].image_color: " + string(ds_list_find_value(entity, 5));
+
+    for (var j = 7; j &lt; ds_list_size(entity); j++)
     {
-        var sj = string(j);
-        str += "#Entity[" + si + "].custom" + sk + ": " + ds_list_find_value(entity, 8 + j);
+        var sj = string(j - 6);
+        str += "#Entity[" + si + "].custom" + sj + ": " + string(ds_list_find_value(entity, j));
     }
+    str += "#-------------------------"
 }
 
 draw_set_color(c_white);

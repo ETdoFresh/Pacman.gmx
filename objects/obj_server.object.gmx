@@ -151,7 +151,17 @@ for (i = 0; i &lt; entities; i++)
             buffer_write(entity_buffer, buffer_u16, entity.image_angle);
             buffer_write(entity_buffer, buffer_u32, entity.image_blend);
             buffer_write(entity_buffer, buffer_u8, entity.number);
-            buffer_write(entity_buffer, buffer_u8, 0);
+            
+            if (entity.object_index == obj_bullet)
+            {
+                buffer_write(entity_buffer, buffer_u8, 2);
+                buffer_write(entity_buffer, buffer_u32, entity.target_x);
+                buffer_write(entity_buffer, buffer_u32, entity.target_y);
+            }
+            else
+            {
+                buffer_write(entity_buffer, buffer_u8, 0);
+            }
         }
         
         var buffer_size = buffer_tell(entity_buffer);
@@ -347,6 +357,20 @@ if (type == network_type_data)
                 player.key_up = is_pressed;
             else if (input == vk_down)
                 player.key_down = is_pressed;
+            
+            // Mouse Button Pressed
+            if (input == mb_left)
+            {
+                // Add bullet entity
+                var bullet = instance_create(player.x + 8, player.y + 16, obj_bullet);
+                bullet.target_x = buffer_read(buffer, buffer_s16);
+                bullet.target_y = buffer_read(buffer, buffer_s16);
+                bullet.image_angle = point_direction(player.x + 8, player.y + 16, bullet.target_x, bullet.target_y);
+                bullet.image_alpha = 0.25;
+                bullet.alarm[0] = room_speed;
+                bullet.number = player.number;
+                ds_list_add(entity_list, bullet);
+            }
         }
     }
 }
