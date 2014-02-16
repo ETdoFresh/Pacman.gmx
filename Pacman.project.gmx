@@ -59,6 +59,10 @@
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
+  <scripts name="scripts">
+    <script>scripts\remove_tween.gml</script>
+    <script>scripts\tween.gml</script>
+  </scripts>
   <objects name="objects">
     <objects name="Title">
       <object>objects\obj_menu_controller</object>
@@ -99,6 +103,7 @@
     </objects>
     <object>objects\obj_controller</object>
     <object>objects\obj_points</object>
+    <object>objects\obj_tween</object>
   </objects>
   <timelines name="timelines">
     <timeline>timelines\tl_level_complete</timeline>
