@@ -25,6 +25,12 @@
   <NewExtensions/>
   <sounds name="sound"/>
   <sprites name="sprites">
+    <sprites name="Title">
+      <sprite>sprites\spr_title</sprite>
+      <sprite>sprites\spr_subtitle</sprite>
+      <sprite>sprites\spr_menu_button</sprite>
+      <sprite>sprites\spr_copyright</sprite>
+    </sprites>
     <sprites name="Fruits">
       <sprite>sprites\spr_cherry</sprite>
       <sprite>sprites\spr_strawberry</sprite>
@@ -54,6 +60,13 @@
   <backgrounds name="background"/>
   <paths name="paths"/>
   <objects name="objects">
+    <objects name="Title">
+      <object>objects\obj_menu_controller</object>
+      <object>objects\obj_copyright</object>
+      <object>objects\obj_title</object>
+      <object>objects\obj_subtitle</object>
+      <object>objects\obj_menu_button</object>
+    </objects>
     <objects name="Fruits">
       <object>objects\obj_bonus_fruit</object>
     </objects>
@@ -91,6 +104,7 @@
     <timeline>timelines\tl_level_complete</timeline>
   </timelines>
   <rooms name="rooms">
+    <room>rooms\rm_main_menu</room>
     <room>rooms\rm_game</room>
   </rooms>
   <constants number="5">
