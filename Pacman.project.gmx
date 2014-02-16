@@ -7,6 +7,7 @@
   <sounds name="sound"/>
   <sprites name="sprites">
     <sprite>sprites\spr_circle</sprite>
+    <sprite>sprites\spr_button</sprite>
   </sprites>
   <backgrounds name="background"/>
   <paths name="paths"/>
@@ -14,9 +15,15 @@
     <script>scripts\tween.gml</script>
     <script>scripts\remove_tween.gml</script>
   </scripts>
+  <fonts name="fonts">
+    <font>fonts\fnt_button</font>
+    <font>fonts\fnt_obj_info</font>
+  </fonts>
   <objects name="objects">
     <object>objects\obj_tween</object>
     <object>objects\obj_circle</object>
+    <object>objects\obj_button</object>
+    <object>objects\obj_controller</object>
   </objects>
   <rooms name="rooms">
     <room>rooms\rm_main</room>
