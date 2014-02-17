@@ -5,7 +5,7 @@
   <visible>-1</visible>
   <depth>0</depth>
   <persistent>0</persistent>
-  <parentName>&lt;undefined&gt;</parentName>
+  <parentName>obj_tween</parentName>
   <maskName>&lt;undefined&gt;</maskName>
   <events>
     <event eventtype="0" enumb="0">
@@ -27,6 +27,16 @@
             <kind>1</kind>
             <string>/// Set Buttons
 
+event_inherited();
+
+if (current_time &lt; 1000)
+{
+    var _w = browser_width * .80;
+    var _h = browser_height * .80;
+    window_set_size(_w, _h);
+    window_set_position(browser_width * .10, browser_height * .05);
+}
+
 with(obj_controller)
     instance_destroy();
 
@@ -34,18 +44,82 @@ obj_title.image_alpha = 0;
 tween(obj_title, "image_alpha", 1, 500, "linear");
 
 obj_subtitle.image_alpha = 0;
-tween(obj_subtitle, "image_alpha", 1, 1500, "linear");
+tween_delay(obj_subtitle, "image_alpha", 1, 500, 500, "linear");
 
 obj_copyright.image_alpha = 0;
-tween(obj_copyright, "image_alpha", 1, 1000, "linear");
+tween(obj_copyright, "image_alpha", 1, 500, "linear");
 
 for (var i = 0; i &lt; instance_number(obj_menu_button); i++)
 {
     var inst = instance_find(obj_menu_button, i);
     inst.image_index = i;
     inst.x += inst.sprite_width;
-    tween(inst, "x", -inst.sprite_width, i * 500 + 500, "ease_in_out");
+    tween(inst, "x", -inst.sprite_width, i * 333 + 333, "ease_in_out");
 }
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="2" enumb="0">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Goto Game
+
+room_goto(rm_game);
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="10">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Fade to Black
+
+with (obj_tween)
+    remove_tween(id);
+
+for (var i = 0; i &lt; instance_number(obj_menu_button); i++)
+{
+    var inst = instance_find(obj_menu_button, i);
+    inst.image_index = i;
+    tween(inst, "x", +inst.sprite_width, i * 333 + 333, "ease_in_out");
+}    
+
+var fade = instance_create(0,0,obj_fade);
+fade.image_alpha = 0;
+tween(fade.id, "image_alpha", 1, 750, "linear");
+
+alarm[0] = room_speed * 1.000;
 </string>
           </argument>
         </arguments>

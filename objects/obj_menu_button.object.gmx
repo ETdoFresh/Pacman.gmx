@@ -144,7 +144,8 @@ if (is_focus)
     switch(image_index)
     {
         case 0:
-            room_goto(rm_game);
+            with (obj_menu_controller)
+                event_perform(ev_other, ev_user0);
             break;
         case 1:
             show_message("Multiplayer");

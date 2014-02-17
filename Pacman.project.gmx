@@ -62,6 +62,7 @@
   <scripts name="scripts">
     <script>scripts\remove_tween.gml</script>
     <script>scripts\tween.gml</script>
+    <script>scripts\tween_delay.gml</script>
   </scripts>
   <objects name="objects">
     <objects name="Title">
@@ -70,6 +71,7 @@
       <object>objects\obj_title</object>
       <object>objects\obj_subtitle</object>
       <object>objects\obj_menu_button</object>
+      <object>objects\obj_fade</object>
     </objects>
     <objects name="Fruits">
       <object>objects\obj_bonus_fruit</object>

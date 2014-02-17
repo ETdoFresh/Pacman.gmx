@@ -90,6 +90,9 @@
     if (curr_time &gt; start_time + duration)
         curr_time = start_time + duration;
     
+    if (curr_time &lt; start_time)
+        continue;
+        
     switch (easing_option)
     {
         case "linear":
