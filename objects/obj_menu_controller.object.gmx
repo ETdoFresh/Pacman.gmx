@@ -80,7 +80,7 @@ for (var i = 0; i &lt; instance_number(obj_menu_button); i++)
             <kind>1</kind>
             <string>/// Goto Game
 
-room_goto(rm_game);
+room_goto(rm_game2);
 </string>
           </argument>
         </arguments>

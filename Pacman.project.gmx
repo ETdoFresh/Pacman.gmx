@@ -55,15 +55,21 @@
       <sprite>sprites\spr_inner_wall</sprite>
       <sprite>sprites\spr_inner_corner</sprite>
       <sprite>sprites\spr_door</sprite>
+      <sprite>sprites\spr_solid</sprite>
     </sprites>
   </sprites>
-  <backgrounds name="background"/>
+  <backgrounds name="background">
+    <background>background\bg_main</background>
+  </backgrounds>
   <paths name="paths"/>
   <scripts name="scripts">
     <script>scripts\remove_tween.gml</script>
     <script>scripts\tween.gml</script>
     <script>scripts\tween_delay.gml</script>
   </scripts>
+  <fonts name="fonts">
+    <font>fonts\fnt_game</font>
+  </fonts>
   <objects name="objects">
     <objects name="Title">
       <object>objects\obj_menu_controller</object>
@@ -102,16 +108,20 @@
       <object>objects\obj_inner_wall</object>
       <object>objects\obj_inner_corner</object>
       <object>objects\obj_door</object>
+      <object>objects\obj_solid</object>
     </objects>
     <object>objects\obj_controller</object>
     <object>objects\obj_points</object>
     <object>objects\obj_tween</object>
+    <object>objects\obj_controller2</object>
   </objects>
   <timelines name="timelines">
     <timeline>timelines\tl_level_complete</timeline>
+    <timeline>timelines\tl_level_start</timeline>
   </timelines>
   <rooms name="rooms">
     <room>rooms\rm_main_menu</room>
+    <room>rooms\rm_game2</room>
     <room>rooms\rm_game</room>
   </rooms>
   <constants number="5">

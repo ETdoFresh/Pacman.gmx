@@ -57,8 +57,7 @@ with (obj_controller)
 
 instance_deactivate_object(obj_ghost);
 
-with (obj_wall)
-    image_blend = c_white;
+background_blend = c_white;
 </string>
           </argument>
         </arguments>
@@ -86,8 +85,7 @@ with (obj_wall)
             <kind>1</kind>
             <string>/// Turn Board Blue
 
-with(obj_wall)
-    image_blend = make_color_rgb(60, 87, 167);
+background_blend = make_color_rgb(60, 87, 167);
 </string>
           </argument>
         </arguments>
@@ -115,8 +113,7 @@ with(obj_wall)
             <kind>1</kind>
             <string>/// Turn Board White
 
-with(obj_wall)
-    image_blend = c_white;
+background_blend = c_white;
 </string>
           </argument>
         </arguments>
@@ -144,8 +141,7 @@ with(obj_wall)
             <kind>1</kind>
             <string>/// Turn Board Blue
 
-with(obj_wall)
-    image_blend = make_color_rgb(60, 87, 167);
+background_blend = make_color_rgb(60, 87, 167);
 </string>
           </argument>
         </arguments>
@@ -173,8 +169,7 @@ with(obj_wall)
             <kind>1</kind>
             <string>/// Turn Board White
 
-with(obj_wall)
-    image_blend = c_white;
+background_blend = c_white;
 </string>
           </argument>
         </arguments>
@@ -202,8 +197,7 @@ with(obj_wall)
             <kind>1</kind>
             <string>/// Turn Board Blue
 
-with(obj_wall)
-    image_blend = make_color_rgb(60, 87, 167);
+background_blend = make_color_rgb(60, 87, 167);
 </string>
           </argument>
         </arguments>
@@ -231,8 +225,7 @@ with(obj_wall)
             <kind>1</kind>
             <string>/// Turn Board White
 
-with(obj_wall)
-    image_blend = c_white;
+background_blend = c_white;
 </string>
           </argument>
         </arguments>
@@ -260,8 +253,7 @@ with(obj_wall)
             <kind>1</kind>
             <string>/// Turn Board Blue
 
-with(obj_wall)
-    image_blend = make_color_rgb(60, 87, 167);
+background_blend = make_color_rgb(60, 87, 167);
 </string>
           </argument>
         </arguments>
@@ -319,12 +311,10 @@ instance_deactivate_object(obj_pacman);
             <kind>1</kind>
             <string>/// Load Next Level
 
-with (obj_controller)
+with (obj_controller2)
 {
     event_perform(ev_other, ev_user3);
     room_restart();
-
-    is_loading = false;
 }
 </string>
           </argument>

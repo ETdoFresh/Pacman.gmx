@@ -28,6 +28,7 @@
             <string>/// Setup Direction, Image, Movement, Target
 
 state = "Normal";
+previous_state = "Normal";
 
 // Image Setup
 image_speed = 1;
@@ -40,7 +41,7 @@ desired_direction = LEFT;
 target_image_angle = 180; // LEFT
 
 // Movement Setup
-move_speed = 3; // px per step
+move_speed = 4; // px per step
 turn_speed = 10; // degrees per step
 
 // Create target to follow
@@ -106,21 +107,23 @@ current_direction = desired_direction;
 my_target.x = x;
 my_target.y = y;
 
+var tile_size = 34;
+
 if (current_direction == LEFT)
-    my_target.x -= 32;
+    my_target.x -= tile_size;
 else if (current_direction == RIGHT)
-    my_target.x += 32;
+    my_target.x += tile_size;
 else if (current_direction == UP)
-    my_target.y -= 32;
+    my_target.y -= tile_size;
 else if (current_direction == DOWN)
-    my_target.y += 32;
+    my_target.y += tile_size;
 
 // Snap to Grid and Check for walls
 var cannotMove = false;
 with (my_target)
 {
-    move_snap(32, 32);
-    if (!place_free(x, y) || (x &gt; 416 &amp;&amp; x &lt; 512 &amp;&amp; y &gt; 384 &amp;&amp; y &lt; 448))
+    move_snap(tile_size, tile_size);
+    if (!place_free(x, y))
     {
         x = xprevious;
         y = yprevious;
@@ -137,18 +140,18 @@ if (cannotMove &amp;&amp; current_direction != previous_direction)
     my_target.y = y;
     
     if (current_direction == LEFT)
-        my_target.x -= 32;
+        my_target.x -= tile_size;
     else if (current_direction == RIGHT)
-        my_target.x += 32;
+        my_target.x += tile_size;
     else if (current_direction == UP)
-        my_target.y -= 32;
+        my_target.y -= tile_size;
     else if (current_direction == DOWN)
-        my_target.y += 32;
+        my_target.y += tile_size;
     
     with (my_target)
     {
-        move_snap(32, 32);
-        if (!place_free(x, y) || (x &gt; 416 &amp;&amp; x &lt; 512 &amp;&amp; y &gt; 384 &amp;&amp; y &lt; 448))
+        move_snap(tile_size, tile_size);
+        if (!place_free(x, y))
         {
             x = xprevious;
             y = yprevious;
@@ -188,7 +191,7 @@ while (image_angle &lt; 0) image_angle += 360;
 // Move towards Target
 if (cannotMove &amp;&amp; point_distance(x, y, my_target.x, my_target.y) &lt; move_speed)
 {
-    move_snap(32, 32);
+    move_snap(tile_size, tile_size);
     speed = 0;
     image_speed = 0;
 }
@@ -242,7 +245,7 @@ with (obj_ghost)
 with (other)
     instance_destroy();
 
-with (obj_controller)
+with (obj_controller2)
 {
     alarm[0] = fright_time * room_speed;
     event_perform(ev_other, ev_user0); // Process Dot Counter
@@ -276,7 +279,7 @@ score += 10;
 with (other)
     instance_destroy();
 
-with(obj_controller)
+with(obj_controller2)
     event_perform(ev_other, ev_user0);
 </string>
           </argument>
@@ -384,7 +387,7 @@ with (other)
 {
     with (instance_create(x, y, obj_points))
     {
-        text = obj_controller.bonus_points;
+        text = obj_controller2.bonus_points;
         text_color = c_purple;
     }
     instance_destroy();
@@ -494,6 +497,59 @@ target_image_angle = 180;
         </arguments>
       </action>
     </event>
+    <event eventtype="7" enumb="25">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Pause
+
+if (state != "Pause")
+    previous_state = state;
+
+state = "Pause";
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="24">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Resume from Pause
+
+state = previous_state;
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
     <event eventtype="8" enumb="0">
       <action>
         <libid>1</libid>
@@ -513,8 +569,12 @@ target_image_angle = 180;
             <kind>1</kind>
             <string>/// (Debug) Draw Self and X, Y coordinates
 draw_self();
-draw_set_halign(fa_center);
-draw_text(x, y - 40, string(x) + ", " + string(y));
+
+if (global.debug)
+{
+    draw_set_halign(fa_center);
+    draw_text(x, y - 40, string(x) + ", " + string(y));
+}
 </string>
           </argument>
         </arguments>
