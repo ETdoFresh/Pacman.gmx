@@ -153,6 +153,14 @@ if (is_focus)
         case 2:
             show_message("Options");
             break;
+        case 3:
+            with (obj_controller2)
+                event_perform(ev_keypress, vk_escape);
+            break;
+        case 4:
+            with (obj_controller2)
+                room_goto(rm_main_menu);
+            break;
     }
 </string>
           </argument>

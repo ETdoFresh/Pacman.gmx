@@ -284,6 +284,7 @@ background_blend = make_color_rgb(60, 87, 167);
 instance_deactivate_object(obj_wall);
 instance_deactivate_object(obj_door);
 instance_deactivate_object(obj_pacman);
+lives++;
 </string>
           </argument>
         </arguments>
@@ -313,8 +314,12 @@ instance_deactivate_object(obj_pacman);
 
 with (obj_controller2)
 {
+    level++;
     event_perform(ev_other, ev_user3);
-    room_restart();
+    event_perform(ev_other, ev_user1); // Reset Level State
+   timeline_index = tl_level_start;
+    timeline_position = 0;
+    timeline_running = true; 
 }
 </string>
           </argument>

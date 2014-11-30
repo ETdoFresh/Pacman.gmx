@@ -47,6 +47,11 @@ timeline_running = true;
 level = 1;
 event_perform(ev_other, ev_user3); // Load Level Settings
 event_perform(ev_other, ev_user1); // Reset Level State
+
+lives = 3;
+
+with (instance_find(obj_menu_button, 0)) image_index = 3;
+with (instance_find(obj_menu_button, 1)) image_index = 4;
 </string>
           </argument>
         </arguments>
@@ -245,7 +250,6 @@ ghosts[3] = obj_blinky;
 
 if (!instance_exists(obj_pellet) &amp;&amp; !instance_exists(obj_power_pellet))
 {
-    level++;
     timeline_index = tl_level_complete
     timeline_position = 0;
     timeline_running = true;
@@ -333,6 +337,21 @@ if (show_player)
     draw_text(731, 408, "PLAYER ONE");
 }
 
+for (var i = 0; i &lt; lives; i++)
+    draw_sprite_ext(spr_pacman, 0, 1241, 51 + i * 51, 0.75, 0.75, 0, c_yellow, 1);
+
+for (var i = 0; i &lt; level; i++)
+{
+    switch(i)
+    {
+        case 0:
+            draw_sprite_ext(spr_cherry, 0, 1241, 1020 - i * 51, 0.75, 0.75, 0, c_white, 1);
+            break;
+        case 1:
+            draw_sprite_ext(spr_strawberry, 0, 1241, 1020 - i * 51, 0.75, 0.75, 0, c_white, 1);
+            break;
+    }
+}
 </string>
           </argument>
         </arguments>
@@ -356,62 +375,6 @@ if (show_player)
           <argument>
             <kind>1</kind>
             <string>room_restart();
-</string>
-          </argument>
-        </arguments>
-      </action>
-    </event>
-    <event eventtype="9" enumb="80">
-      <action>
-        <libid>1</libid>
-        <id>603</id>
-        <kind>7</kind>
-        <userelative>0</userelative>
-        <isquestion>0</isquestion>
-        <useapplyto>-1</useapplyto>
-        <exetype>2</exetype>
-        <functionname></functionname>
-        <codestring></codestring>
-        <whoName>self</whoName>
-        <relative>0</relative>
-        <isnot>0</isnot>
-        <arguments>
-          <argument>
-            <kind>1</kind>
-            <string>/// Toggle Pause
-
-// Do not toggle pause if timeline is running
-if (timeline_running)
-    exit;
-
-if (paused)
-{
-    paused = false;
-    with (fade)
-        instance_destroy();
-
-    with (obj_pacman)
-        event_perform(ev_other, ev_user14);    
-    with (obj_ghost)
-        event_perform(ev_other, ev_user14);
-    with (obj_bonus_fruit)
-        event_perform(ev_other, ev_user14);
-}
-else
-{
-    paused = true;
-    
-    with (obj_pacman)
-        event_perform(ev_other, ev_user15);   
-    with (obj_ghost)
-        event_perform(ev_other, ev_user15);
-    with (obj_bonus_fruit)
-        event_perform(ev_other, ev_user15);
-    
-    fade = instance_create(0, 0, obj_fade);
-    fade.image_alpha = 0;
-    tween(fade, "image_alpha", 0.9, 250, "linear");
-}
 </string>
           </argument>
         </arguments>
@@ -459,9 +422,58 @@ global.debug = !global.debug;
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Back to Menu
+            <string>/// Toggle Pause
 
-room_goto(rm_main_menu);
+// Do not toggle pause if timeline is running
+if (timeline_running)
+    exit;
+
+if (paused)
+{
+    paused = false;
+    with (fade)
+        instance_destroy();
+
+    with (obj_pacman)
+        event_perform(ev_other, ev_user14);    
+    with (obj_ghost)
+        event_perform(ev_other, ev_user14);
+    with (obj_bonus_fruit)
+        event_perform(ev_other, ev_user14);
+
+    for (var i = 0; i &lt; instance_number(obj_menu_button); i++)
+    {
+        var inst = instance_find(obj_menu_button, i);
+        inst.depth = -1000;
+        remove_tween(inst);
+        var dx = inst.xstart - inst.x;
+        tween(inst, "x", dx, i * 333 + 333, "ease_in_out");
+    }
+}
+else
+{
+    paused = true;
+    
+    with (obj_pacman)
+        event_perform(ev_other, ev_user15);   
+    with (obj_ghost)
+        event_perform(ev_other, ev_user15);
+    with (obj_bonus_fruit)
+        event_perform(ev_other, ev_user15);
+    
+    fade = instance_create(0, 0, obj_fade);
+    fade.image_alpha = 0;
+    tween(fade, "image_alpha", 0.9, 250, "linear");
+    
+    for (var i = 0; i &lt; instance_number(obj_menu_button); i++)
+    {
+        var inst = instance_find(obj_menu_button, i);
+        remove_tween(inst);
+        inst.depth = -1000;
+        var dx = inst.xstart - inst.x - inst.sprite_width;
+        tween(inst, "x", dx, i * 333 + 333, "ease_in_out");
+    }
+}
 </string>
           </argument>
         </arguments>

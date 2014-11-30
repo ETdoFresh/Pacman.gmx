@@ -27,6 +27,7 @@
             <kind>1</kind>
             <string>/// Create Flashing Power Pellet
 
+visible = true;
 flash_time = 0.167;
 flash_steps = room_speed * flash_time;
 

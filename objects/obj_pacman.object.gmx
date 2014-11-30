@@ -3,7 +3,7 @@
   <spriteName>spr_pacman</spriteName>
   <solid>0</solid>
   <visible>-1</visible>
-  <depth>-500</depth>
+  <depth>-50</depth>
   <persistent>0</persistent>
   <parentName>&lt;undefined&gt;</parentName>
   <maskName>&lt;undefined&gt;</maskName>
@@ -25,28 +25,22 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>/// Setup Direction, Image, Movement, Target
+            <string>/// Initialize Pacman
 
-state = "Normal";
-previous_state = "Normal";
+// Create target to follow
+my_target = instance_create(x, y, obj_target);
+my_target.image_blend = c_yellow;
+
+// Movement Setup
+move_speed = 10; // px per step
+turn_speed = 10; // degrees per step
 
 // Image Setup
 image_speed = 1;
 image_blend = c_yellow;
 
-// Direction Setup
-previous_direction = LEFT;
-current_direction = LEFT;
-desired_direction = LEFT;
-target_image_angle = 180; // LEFT
-
-// Movement Setup
-move_speed = 4; // px per step
-turn_speed = 10; // degrees per step
-
-// Create target to follow
-my_target = instance_create(x, y, obj_target);
-my_target.image_blend = c_yellow;
+// Set initial state and direction
+event_perform(ev_other, ev_user0);
 </string>
           </argument>
         </arguments>
@@ -242,8 +236,7 @@ with (obj_ghost)
     }
 }
 
-with (other)
-    instance_destroy();
+instance_deactivate_object(other);
 
 with (obj_controller2)
 {
@@ -276,8 +269,7 @@ with (obj_controller2)
 
 score += 10;
 
-with (other)
-    instance_destroy();
+instance_deactivate_object(other);
 
 with(obj_controller2)
     event_perform(ev_other, ev_user0);
@@ -545,6 +537,44 @@ state = "Pause";
             <string>/// Resume from Pause
 
 state = previous_state;
+</string>
+          </argument>
+        </arguments>
+      </action>
+    </event>
+    <event eventtype="7" enumb="10">
+      <action>
+        <libid>1</libid>
+        <id>603</id>
+        <kind>7</kind>
+        <userelative>0</userelative>
+        <isquestion>0</isquestion>
+        <useapplyto>-1</useapplyto>
+        <exetype>2</exetype>
+        <functionname></functionname>
+        <codestring></codestring>
+        <whoName>self</whoName>
+        <relative>0</relative>
+        <isnot>0</isnot>
+        <arguments>
+          <argument>
+            <kind>1</kind>
+            <string>/// Reset initial state and direction
+
+// Reset Position
+x = xstart;
+y = ystart;
+image_angle = 0;
+
+// Reset Initial State
+state = "Normal";
+previous_state = "Normal";
+
+// Direction Setup
+previous_direction = LEFT;
+current_direction = LEFT;
+desired_direction = LEFT;
+target_image_angle = 180; // LEFT
 </string>
           </argument>
         </arguments>

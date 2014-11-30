@@ -19,10 +19,19 @@
         <arguments>
           <argument>
             <kind>1</kind>
-            <string>instance_deactivate_object(obj_pacman);
+            <string>// Activate all dots
+instance_activate_object(obj_pellet);
+instance_activate_object(obj_power_pellet);
+event_perform_object(obj_power_pellet, ev_create, 0);
+
+// Deactivate Pacman
+instance_deactivate_object(obj_pacman);
+
+// Show all Text
 obj_controller2.show_ready = true;
 obj_controller2.show_player = true;
 
+// Fade in
 fade = instance_create(0, 0, obj_fade);
 tween(fade, "image_alpha", -1, 250, "linear");
 </string>
@@ -53,8 +62,12 @@ tween(fade, "image_alpha", -1, 250, "linear");
             <string>
 instance_activate_object(obj_pacman);
 with (obj_pacman)
+{
+    event_perform(ev_other, ev_user0);
     state = "Pause";
+}
 
+lives--;
 obj_controller2.show_player = false;
 </string>
           </argument>
